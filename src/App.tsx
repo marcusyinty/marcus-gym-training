@@ -386,10 +386,12 @@ export const App: React.FC = () => {
         onClose={() => setIsAboutOpen(false)}
       />
 
-      {/* Requirement 3 & 4: Weekly Report Summary Modal with PNG Export */}
+      {/* Weekly Report Summary Modal with Load/Volume Breakdown & PNG Export */}
       <WeeklyReportModal
         isOpen={isWeeklyReportOpen}
         lang={lang}
+        days={enrichedDays}
+        setDetailsState={setDetailsState}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
         completedDaysCount={completedDaysCount}

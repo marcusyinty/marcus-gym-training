@@ -44,7 +44,6 @@ export interface UiTranslations {
   secondaryTarget: string;
   hoverMuscleNotice: string;
 
-  // Step 7: Weekly Report Additions
   weeklyReportBtn: string;
   weeklyReportTitle: string;
   weeklyReportSub: string;
@@ -56,6 +55,8 @@ export interface UiTranslations {
   shareSuccess: string;
   weeklyQuote: string;
   verifiedBadge: string;
+  totalVolumeLifted: string;
+  peakLoadPerExercise: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -118,6 +119,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     weeklyQuote:
       'Consistency compounds. Form stayed strict, zero sets skipped. Ready for progressive overload next week.',
     verifiedBadge: 'Verified Aesthetic Routine by Marcus',
+    totalVolumeLifted: 'Total Volume Lifted',
+    peakLoadPerExercise: 'Movement Peak Loads & Tonnage',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -175,6 +178,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     shareSuccess: '战报图片已保存！',
     weeklyQuote: '自律铸就体态。动作标准，未漏一组。下周继续渐进超负荷！',
     verifiedBadge: 'Marcus 美学增肌认证战报',
+    totalVolumeLifted: '全周总容量',
+    peakLoadPerExercise: '各动作极限重量榜',
   },
 };
 
