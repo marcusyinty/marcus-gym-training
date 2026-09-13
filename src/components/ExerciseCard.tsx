@@ -1,11 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { EnrichedExercise, SetDetail } from '../types/workout';
+import { Language, uiTranslations, exerciseTranslationsZh } from '../data/translations';
 import { AnatomyMap } from './AnatomyMap';
-import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ExerciseCardProps {
   exercise: EnrichedExercise;
   index: number;
+  lang: Language;
   completedSetIndexes: number[];
   setDetails: Record<number, SetDetail>;
   previousBest?: { weight: string; reps: string; unit: 'kg' | 'lbs' };
@@ -17,6 +19,7 @@ interface ExerciseCardProps {
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   exercise,
   index,
+  lang,
   completedSetIndexes,
   setDetails,
   previousBest,
@@ -27,11 +30,17 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-
-  // Requirement 1: Default active tab is strictly "video" (Form Demo)
   const [activeMediaTab, setActiveMediaTab] = useState<'video' | 'anatomy'>('video');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
   const [isLogExpanded, setIsLogExpanded] = useState(true);
+
+  const t = uiTranslations[lang];
+  const zhEx = exerciseTranslationsZh[exercise.id];
+
+  const exerciseName = lang === 'zh' && zhEx ? zhEx.name : exercise.name;
+  const primaryMuscles = lang === 'zh' && zhEx ? zhEx.primaryMuscles : exercise.primaryMuscles;
+  const secondaryMuscles = lang === 'zh' && zhEx ? zhEx.secondaryMuscles : exercise.secondaryMuscles;
+  const coachingCue = lang === 'zh' && zhEx ? zhEx.coachingCue : exercise.coachingCue;
 
   // Derive total sets count
   const parseSetsCount = (setsStr: string): number => {
@@ -91,7 +100,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       ref={containerRef}
       className="bg-[#121215] border border-[#27272a] rounded-2xl overflow-hidden shadow-xl hover:border-zinc-700 transition-all duration-300 group flex flex-col md:flex-row"
     >
-      {/* Media / Visualizer Area (Left on desktop, Top on mobile) */}
+      {/* Media / Visualizer Area */}
       <div className="relative w-full md:w-[280px] lg:w-[320px] shrink-0 bg-[#09090b] flex flex-col">
         {/* Top Tab Selector for Video vs Anatomy */}
         <div className="flex items-center justify-between p-2 bg-[#0d0d10] border-b border-[#222227] z-10">
@@ -102,7 +111,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 activeMediaTab === 'video' ? 'bg-emerald-500 text-black font-extrabold' : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Video className="w-3 h-3" /> Form Demo
+              <Video className="w-3 h-3" /> {t.formDemoTab}
             </button>
             <button
               onClick={() => setActiveMediaTab('anatomy')}
@@ -110,13 +119,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 activeMediaTab === 'anatomy' ? 'bg-emerald-500 text-black font-extrabold' : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Activity className="w-3 h-3" /> Muscle Map
+              <Activity className="w-3 h-3" /> {t.muscleMapTab}
             </button>
           </div>
 
           {media && activeMediaTab === 'video' && (
             <button
-              onClick={() => onOpenVideoModal(media.videoUrl, media.posterUrl, exercise.name)}
+              onClick={() => onOpenVideoModal(media.videoUrl, media.posterUrl, exerciseName)}
               className="p-1 rounded-md bg-zinc-800 text-zinc-300 hover:bg-emerald-500 hover:text-black transition-colors"
               title="Fullscreen Form Demo"
             >
@@ -144,7 +153,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-90 sm:opacity-0 group-hover/video:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded border border-emerald-500/30">
-                    <VolumeX className="w-3 h-3" /> Muted Loop
+                    <VolumeX className="w-3 h-3" /> {t.mutedLoop}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -172,7 +181,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </div>
       </div>
 
-      {/* Content Details Area (Right on desktop, Bottom on mobile) */}
+      {/* Content Details Area */}
       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
         <div>
           {/* Header & Exercise Title */}
@@ -183,7 +192,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   #{String(index + 1).padStart(2, '0')}
                 </span>
                 <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight font-['Plus_Jakarta_Sans']">
-                  {exercise.name}
+                  {exerciseName}
                 </h3>
               </div>
             </div>
@@ -192,18 +201,17 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <div className="flex items-center gap-2 bg-[#1a1a20] border border-[#2e2e35] px-3 py-1.5 rounded-xl">
                 <div className="text-center">
-                  <span className="text-[9px] uppercase tracking-wider text-zinc-400 block font-semibold">Volume</span>
+                  <span className="text-[9px] uppercase tracking-wider text-zinc-400 block font-semibold">{t.volumeLabel}</span>
                   <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono">
-                    {exercise.sets} SETS <span className="text-zinc-500">|</span> {exercise.reps} REPS
+                    {exercise.sets} {t.sets} <span className="text-zinc-500">|</span> {exercise.reps} {t.reps}
                   </span>
                 </div>
               </div>
 
-              {/* Requirement 2: Previous Best Reference Badge */}
               {previousBest && (previousBest.weight || previousBest.reps) && (
                 <div className="flex items-center gap-1 text-[10px] font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
                   <Award className="w-3 h-3 text-cyan-400" />
-                  <span>Prev: {previousBest.weight || '0'} {previousBest.unit} × {previousBest.reps || '0'}</span>
+                  <span>{t.prevBest(previousBest.weight || '0', previousBest.unit, previousBest.reps || '0')}</span>
                 </div>
               )}
             </div>
@@ -212,9 +220,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {/* Muscle Target Badges */}
           <div className="flex flex-wrap items-center gap-1.5 my-3">
             <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mr-1 flex items-center gap-1">
-              <Target className="w-3 h-3 text-emerald-400" /> Targets:
+              <Target className="w-3 h-3 text-emerald-400" /> {t.targetsLabel}
             </span>
-            {exercise.primaryMuscles.map((muscle) => (
+            {primaryMuscles.map((muscle) => (
               <span
                 key={muscle}
                 className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
@@ -222,7 +230,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 {muscle}
               </span>
             ))}
-            {exercise.secondaryMuscles.map((muscle) => (
+            {secondaryMuscles.map((muscle) => (
               <span
                 key={muscle}
                 className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/60"
@@ -236,10 +244,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <div className="mt-3 bg-[#0d0d10] border border-[#222227] rounded-xl p-3 relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-1">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>COACHING CUE</span>
+              <span>{t.coachingCueLabel}</span>
             </div>
             <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed italic font-sans">
-              "{exercise.coachingCue}"
+              "{coachingCue}"
             </p>
           </div>
         </div>
@@ -250,7 +258,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                Log Session ({completedSetIndexes.length}/{totalSets} Sets)
+                {t.logSessionLabel(completedSetIndexes.length, totalSets)}
               </span>
             </div>
 
@@ -304,7 +312,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       }`}
                     >
                       <Check className={`w-3.5 h-3.5 ${isCompleted ? 'stroke-[3]' : 'opacity-40'}`} />
-                      <span>Set {sIdx + 1}</span>
+                      <span>{t.setBtn(sIdx + 1)}</span>
                     </button>
 
                     {/* Inputs: Weight & Reps */}
@@ -312,7 +320,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
-                          placeholder="0"
+                          placeholder={t.weightPlaceholder}
                           value={detail.weight || ''}
                           onChange={(e) =>
                             onUpdateSetDetail(exercise.id, sIdx, e.target.value, detail.reps, weightUnit)
@@ -327,14 +335,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
-                          placeholder="0"
+                          placeholder={t.repsPlaceholder}
                           value={detail.reps || ''}
                           onChange={(e) =>
                             onUpdateSetDetail(exercise.id, sIdx, detail.weight, e.target.value, weightUnit)
                           }
                           className="w-12 sm:w-14 bg-[#18181c] border border-zinc-700 rounded-md px-2 py-1 text-xs text-white text-center font-mono focus:outline-none focus:border-emerald-500"
                         />
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase">reps</span>
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase">{t.reps.toLowerCase()}</span>
                       </div>
                     </div>
                   </div>

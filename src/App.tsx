@@ -1,22 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { getEnrichedWorkoutProgram, workoutProgram } from './data/workoutProgram';
+import { Language, uiTranslations, dayTranslationsZh } from './data/translations';
 import { HeaderBanner } from './components/HeaderBanner';
 import { DayNavigation } from './components/DayNavigation';
 import { ExerciseCard } from './components/ExerciseCard';
 import { VideoModal } from './components/VideoModal';
+import { AboutModal } from './components/AboutModal';
 import { SetDetail } from './types/workout';
 import { Trophy, Sparkles, Flame } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
 
+const STORAGE_KEY_LANG = 'language_preference';
 const STORAGE_KEY_SETS = 'aesthetic_recomp_completed_sets_v2';
 const STORAGE_KEY_DETAILS = 'aesthetic_recomp_set_details_v2';
 const STORAGE_KEY_BESTS = 'aesthetic_recomp_previous_bests_v2';
 
 export const App: React.FC = () => {
-  const [activeDayId, setActiveDayId] = useState<string>('day-1');
+  // Requirement 1: i18n Language State (default 'en', persisted in localStorage)
+  const [lang, setLang] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_LANG);
+      return saved === 'zh' ? 'zh' : 'en';
+    } catch (e) {
+      return 'en';
+    }
+  });
 
-  // Completed sets per exercise: exerciseId -> number[] (e.g. [0, 1])
+  const [activeDayId, setActiveDayId] = useState<string>('day-1');
+  const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
+
+  // Completed sets per exercise: exerciseId -> number[]
   const [completedSetsState, setCompletedSetsState] = useState<Record<string, number[]>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SETS);
@@ -58,6 +72,14 @@ export const App: React.FC = () => {
     title: '',
   });
 
+  // Save Language Preference
+  const handleToggleLanguage = (newLang: Language) => {
+    setLang(newLang);
+    try {
+      localStorage.setItem(STORAGE_KEY_LANG, newLang);
+    } catch (e) {}
+  };
+
   // LocalStorage Persistence Sync
   useEffect(() => {
     try {
@@ -78,6 +100,11 @@ export const App: React.FC = () => {
   }, [previousBestsState]);
 
   const activeDay = enrichedDays.find((d) => d.id === activeDayId) || enrichedDays[0];
+  const t = uiTranslations[lang];
+
+  const zhDayTrans = dayTranslationsZh[activeDay.id];
+  const activeDayTitle = lang === 'zh' && zhDayTrans ? zhDayTrans.title : activeDay.title;
+  const activeDayDesc = lang === 'zh' && zhDayTrans ? zhDayTrans.description : activeDay.description;
 
   // Handler: Toggle set completion
   const handleToggleSet = (exerciseId: string, setIndex: number) => {
@@ -127,7 +154,6 @@ export const App: React.FC = () => {
       };
     });
 
-    // Update previous best if weight is provided
     if (weight && reps) {
       setPreviousBestsState((prev) => {
         const existing = prev[exerciseId];
@@ -214,9 +240,12 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex flex-col font-sans">
       {/* Header Banner */}
       <HeaderBanner
+        lang={lang}
+        onToggleLanguage={handleToggleLanguage}
+        onOpenAbout={() => setIsAboutOpen(true)}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
-        activeDayTitle={activeDay.title}
+        activeDayTitle={activeDayTitle}
         onResetActiveDay={handleResetActiveDay}
         onResetAll={handleResetAll}
       />
@@ -225,6 +254,7 @@ export const App: React.FC = () => {
       <DayNavigation
         days={enrichedDays}
         activeDayId={activeDayId}
+        lang={lang}
         onSelectDay={setActiveDayId}
         dayCompletionStats={dayStats}
       />
@@ -239,24 +269,24 @@ export const App: React.FC = () => {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
-                  Day {activeDay.dayNumber} Routine
+                  {t.dayRoutineTitle(activeDay.dayNumber)}
                 </span>
                 <span className="text-xs text-zinc-400 font-medium">
-                  {activeDay.exercises.length} Exercises Prescribed
+                  {t.exercisesPrescribed(activeDay.exercises.length)}
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-['Plus_Jakarta_Sans']">
-                {activeDay.title}
+                {activeDayTitle}
               </h2>
-              <p className="text-sm text-zinc-300 mt-1">{activeDay.description}</p>
+              <p className="text-sm text-zinc-300 mt-1">{activeDayDesc}</p>
             </div>
 
             {/* Day Progress Indicator */}
             <div className="shrink-0 bg-[#09090b] border border-[#27272a] p-3 rounded-xl flex items-center gap-3">
               <div className="text-right">
-                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Day Progress</span>
+                <span className="text-[10px] uppercase font-bold text-zinc-400 block">{t.dayProgress}</span>
                 <span className="text-sm font-extrabold text-white font-mono">
-                  {activeDayStats.completed} / {activeDayStats.total} Sets
+                  {activeDayStats.completed} / {activeDayStats.total} {t.sets}
                 </span>
               </div>
               {isCurrentDayComplete ? (
@@ -279,6 +309,7 @@ export const App: React.FC = () => {
               key={exercise.id}
               exercise={exercise}
               index={idx}
+              lang={lang}
               completedSetIndexes={completedSetsState[exercise.id] || []}
               setDetails={setDetailsState[exercise.id] || {}}
               previousBest={previousBestsState[exercise.id]}
@@ -294,10 +325,10 @@ export const App: React.FC = () => {
           <div className="mt-8 bg-gradient-to-r from-emerald-950/40 via-emerald-900/20 to-cyan-950/40 border border-emerald-500/40 rounded-2xl p-6 text-center relative overflow-hidden">
             <Sparkles className="w-8 h-8 text-emerald-400 mx-auto mb-2 animate-bounce" />
             <h3 className="text-xl font-extrabold text-white font-['Plus_Jakarta_Sans']">
-              Day {activeDay.dayNumber} Complete! 🎉
+              {t.dayCompleteTitle(activeDay.dayNumber)}
             </h3>
             <p className="text-sm text-zinc-300 mt-1 max-w-md mx-auto">
-              Outstanding work on {activeDay.title}. Fuel up with protein and rest up for your next training session.
+              {t.dayCompleteText(activeDayTitle)}
             </p>
           </div>
         )}
@@ -305,9 +336,15 @@ export const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="w-full bg-[#09090b] border-t border-[#18181b] py-6 mt-12 text-center text-xs text-zinc-500">
-        <div className="max-w-4xl mx-auto px-4">
-          <p className="font-medium text-zinc-400">Aesthetic 5-Day Recomposition Hypertrophy System</p>
-          <p className="mt-1 text-zinc-600">Hosted on GitHub & Deployed on Vercel • Cloudinary Media Engine</p>
+        <div className="max-w-4xl mx-auto px-4 flex flex-col items-center gap-1.5">
+          <p className="font-medium text-zinc-400">{t.footerTitle}</p>
+          <p className="text-zinc-600">{t.footerSub}</p>
+          <button
+            onClick={() => setIsAboutOpen(true)}
+            className="mt-1 text-emerald-400 hover:underline font-semibold cursor-pointer"
+          >
+            {t.aboutTitle}
+          </button>
         </div>
       </footer>
 
@@ -318,6 +355,13 @@ export const App: React.FC = () => {
         posterUrl={modalState.posterUrl}
         title={modalState.title}
         onClose={handleCloseVideoModal}
+      />
+
+      {/* Requirement 3: About Page / Dialog */}
+      <AboutModal
+        isOpen={isAboutOpen}
+        lang={lang}
+        onClose={() => setIsAboutOpen(false)}
       />
     </div>
   );

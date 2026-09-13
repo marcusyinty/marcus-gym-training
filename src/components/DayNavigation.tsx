@@ -1,10 +1,11 @@
 import React from 'react';
 import { EnrichedWorkoutDay } from '../types/workout';
-import { Flame, Calendar, Dumbbell } from 'lucide-react';
+import { Language, dayTranslationsZh } from '../data/translations';
 
 interface DayNavigationProps {
   days: EnrichedWorkoutDay[];
   activeDayId: string;
+  lang: Language;
   onSelectDay: (dayId: string) => void;
   dayCompletionStats: Record<string, { completed: number; total: number }>;
 }
@@ -12,6 +13,7 @@ interface DayNavigationProps {
 export const DayNavigation: React.FC<DayNavigationProps> = ({
   days,
   activeDayId,
+  lang,
   onSelectDay,
   dayCompletionStats,
 }) => {
@@ -23,6 +25,10 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
             const isActive = day.id === activeDayId;
             const stats = dayCompletionStats[day.id] || { completed: 0, total: day.exercises.length * 3 };
             const isDayDone = stats.total > 0 && stats.completed === stats.total;
+
+            const zhTranslation = dayTranslationsZh[day.id];
+            const title = lang === 'zh' && zhTranslation ? zhTranslation.title : day.title;
+            const focus = lang === 'zh' && zhTranslation ? zhTranslation.focus : day.focus;
 
             return (
               <button
@@ -52,17 +58,17 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
                     Day {day.dayNumber}
                   </span>
                   <span className="text-xs text-zinc-400 font-medium ml-auto">
-                    {day.exercises.length} Ex
+                    {day.exercises.length} {lang === 'zh' ? '项' : 'Ex'}
                   </span>
                 </div>
 
                 <div className="mt-1 font-bold text-sm text-white tracking-tight flex items-center gap-1.5 font-['Plus_Jakarta_Sans']">
-                  {day.title}
+                  {title}
                   {isDayDone && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />}
                 </div>
 
-                <div className="mt-0.5 text-[11px] text-zinc-400 truncate max-w-[130px]">
-                  {day.focus}
+                <div className="mt-0.5 text-[11px] text-zinc-400 truncate max-w-[140px]">
+                  {focus}
                 </div>
               </button>
             );
