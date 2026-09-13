@@ -1,0 +1,12 @@
+# Environment variables
+.env*
+
+# Dependencies & Build Output
+node_modules/
+dist/
+
+# Heavy video assets directory (served via Cloudinary)
+videos/
+
+# Keep media JSON registry
+!src/data/exerciseVideos.json
