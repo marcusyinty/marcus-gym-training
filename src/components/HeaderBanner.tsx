@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Language, uiTranslations } from '../data/translations';
-import { Dumbbell, ShieldCheck, CheckCircle2, RotateCcw, AlertTriangle, X, Info, Globe } from 'lucide-react';
+import { Dumbbell, ShieldCheck, CheckCircle2, RotateCcw, AlertTriangle, X, Info, Trophy, Award } from 'lucide-react';
 
 interface HeaderBannerProps {
   lang: Language;
   onToggleLanguage: (newLang: Language) => void;
   onOpenAbout: () => void;
+  onOpenWeeklyReport: () => void;
   completedSetsCount: number;
   totalSetsCount: number;
   activeDayTitle: string;
@@ -17,6 +18,7 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({
   lang,
   onToggleLanguage,
   onOpenAbout,
+  onOpenWeeklyReport,
   completedSetsCount,
   totalSetsCount,
   activeDayTitle,
@@ -51,8 +53,18 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({
             </div>
           </div>
 
-          {/* Right Top Controls: Language Switcher & About & Progress */}
+          {/* Right Top Controls */}
           <div className="flex items-center gap-2">
+            {/* Weekly Report Button */}
+            <button
+              onClick={onOpenWeeklyReport}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-extrabold transition-all cursor-pointer shrink-0"
+              title="View Weekly Report Card"
+            >
+              <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">{t.weeklyReportBtn}</span>
+            </button>
+
             {/* Language Switcher Button [ EN | 中文 ] */}
             <div className="flex items-center bg-[#18181c] border border-zinc-800 rounded-lg p-0.5 text-xs font-bold shrink-0">
               <button
@@ -81,20 +93,6 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({
             >
               <Info className="w-4 h-4 text-emerald-400" />
             </button>
-
-            {/* Progress Tracker Pill */}
-            <div className="hidden sm:flex flex-col items-end shrink-0 ml-1">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>{completedSetsCount}/{totalSetsCount} {t.setsCompleted}</span>
-              </div>
-              <div className="w-24 bg-zinc-800 rounded-full h-1.5 mt-1 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full transition-all duration-300 ease-out rounded-full"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
           </div>
         </div>
 

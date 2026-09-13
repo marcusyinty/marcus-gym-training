@@ -6,6 +6,7 @@ import { DayNavigation } from './components/DayNavigation';
 import { ExerciseCard } from './components/ExerciseCard';
 import { VideoModal } from './components/VideoModal';
 import { AboutModal } from './components/AboutModal';
+import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { SetDetail } from './types/workout';
 import { Trophy, Sparkles, Flame } from 'lucide-react';
 
@@ -17,7 +18,6 @@ const STORAGE_KEY_DETAILS = 'aesthetic_recomp_set_details_v2';
 const STORAGE_KEY_BESTS = 'aesthetic_recomp_previous_bests_v2';
 
 export const App: React.FC = () => {
-  // Requirement 1: i18n Language State (default 'en', persisted in localStorage)
   const [lang, setLang] = useState<Language>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_LANG);
@@ -29,8 +29,9 @@ export const App: React.FC = () => {
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
+  const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
 
-  // Completed sets per exercise: exerciseId -> number[]
+  // Completed sets per exercise
   const [completedSetsState, setCompletedSetsState] = useState<Record<string, number[]>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SETS);
@@ -40,7 +41,7 @@ export const App: React.FC = () => {
     }
   });
 
-  // Set details per exercise: exerciseId -> setIndex -> SetDetail
+  // Set details per exercise
   const [setDetailsState, setSetDetailsState] = useState<Record<string, Record<number, SetDetail>>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_DETAILS);
@@ -50,7 +51,7 @@ export const App: React.FC = () => {
     }
   });
 
-  // Previous Bests per exercise: exerciseId -> { weight, reps, unit }
+  // Previous Bests
   const [previousBestsState, setPreviousBestsState] = useState<Record<string, { weight: string; reps: string; unit: 'kg' | 'lbs' }>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_BESTS);
@@ -105,6 +106,41 @@ export const App: React.FC = () => {
   const zhDayTrans = dayTranslationsZh[activeDay.id];
   const activeDayTitle = lang === 'zh' && zhDayTrans ? zhDayTrans.title : activeDay.title;
   const activeDayDesc = lang === 'zh' && zhDayTrans ? zhDayTrans.description : activeDay.description;
+
+  // Calculate session & day statistics
+  let totalProgramSets = 0;
+  let totalCompletedSets = 0;
+  let completedDaysCount = 0;
+
+  const dayStats: Record<string, { completed: number; total: number }> = {};
+
+  enrichedDays.forEach((day) => {
+    let dayTotal = 0;
+    let dayCompleted = 0;
+
+    day.exercises.forEach((ex) => {
+      const parseSets = (s: string) => (s.includes('–') ? parseInt(s.split('–')[1], 10) || 3 : parseInt(s, 10) || 3);
+      const totalSets = parseSets(ex.sets);
+      const done = (completedSetsState[ex.id] || []).length;
+
+      dayTotal += totalSets;
+      dayCompleted += Math.min(done, totalSets);
+    });
+
+    dayStats[day.id] = { completed: dayCompleted, total: dayTotal };
+    if (dayTotal > 0 && dayCompleted === dayTotal) {
+      completedDaysCount += 1;
+    }
+    totalProgramSets += dayTotal;
+    totalCompletedSets += dayCompleted;
+  });
+
+  // Auto-trigger weekly report modal when 100% completion is reached
+  useEffect(() => {
+    if (totalProgramSets > 0 && totalCompletedSets === totalProgramSets) {
+      setIsWeeklyReportOpen(true);
+    }
+  }, [totalCompletedSets, totalProgramSets]);
 
   // Handler: Toggle set completion
   const handleToggleSet = (exerciseId: string, setIndex: number) => {
@@ -209,30 +245,6 @@ export const App: React.FC = () => {
     setModalState((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // Calculate session & day statistics
-  let totalProgramSets = 0;
-  let totalCompletedSets = 0;
-
-  const dayStats: Record<string, { completed: number; total: number }> = {};
-
-  enrichedDays.forEach((day) => {
-    let dayTotal = 0;
-    let dayCompleted = 0;
-
-    day.exercises.forEach((ex) => {
-      const parseSets = (s: string) => (s.includes('–') ? parseInt(s.split('–')[1], 10) || 3 : parseInt(s, 10) || 3);
-      const totalSets = parseSets(ex.sets);
-      const done = (completedSetsState[ex.id] || []).length;
-
-      dayTotal += totalSets;
-      dayCompleted += Math.min(done, totalSets);
-    });
-
-    dayStats[day.id] = { completed: dayCompleted, total: dayTotal };
-    totalProgramSets += dayTotal;
-    totalCompletedSets += dayCompleted;
-  });
-
   const activeDayStats = dayStats[activeDay.id] || { completed: 0, total: 15 };
   const isCurrentDayComplete = activeDayStats.total > 0 && activeDayStats.completed === activeDayStats.total;
 
@@ -243,6 +255,7 @@ export const App: React.FC = () => {
         lang={lang}
         onToggleLanguage={handleToggleLanguage}
         onOpenAbout={() => setIsAboutOpen(true)}
+        onOpenWeeklyReport={() => setIsWeeklyReportOpen(true)}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
         activeDayTitle={activeDayTitle}
@@ -339,12 +352,21 @@ export const App: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 flex flex-col items-center gap-1.5">
           <p className="font-medium text-zinc-400">{t.footerTitle}</p>
           <p className="text-zinc-600">{t.footerSub}</p>
-          <button
-            onClick={() => setIsAboutOpen(true)}
-            className="mt-1 text-emerald-400 hover:underline font-semibold cursor-pointer"
-          >
-            {t.aboutTitle}
-          </button>
+          <div className="flex items-center gap-4 mt-1">
+            <button
+              onClick={() => setIsAboutOpen(true)}
+              className="text-emerald-400 hover:underline font-semibold cursor-pointer"
+            >
+              {t.aboutTitle}
+            </button>
+            <span className="text-zinc-700">•</span>
+            <button
+              onClick={() => setIsWeeklyReportOpen(true)}
+              className="text-cyan-400 hover:underline font-semibold cursor-pointer"
+            >
+              {t.weeklyReportBtn}
+            </button>
+          </div>
         </div>
       </footer>
 
@@ -357,11 +379,22 @@ export const App: React.FC = () => {
         onClose={handleCloseVideoModal}
       />
 
-      {/* Requirement 3: About Page / Dialog */}
+      {/* About Modal */}
       <AboutModal
         isOpen={isAboutOpen}
         lang={lang}
         onClose={() => setIsAboutOpen(false)}
+      />
+
+      {/* Requirement 3 & 4: Weekly Report Summary Modal with PNG Export */}
+      <WeeklyReportModal
+        isOpen={isWeeklyReportOpen}
+        lang={lang}
+        completedSetsCount={totalCompletedSets}
+        totalSetsCount={totalProgramSets}
+        completedDaysCount={completedDaysCount}
+        totalDaysCount={enrichedDays.length}
+        onClose={() => setIsWeeklyReportOpen(false)}
       />
     </div>
   );

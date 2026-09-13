@@ -43,6 +43,19 @@ export interface UiTranslations {
   primaryTarget: string;
   secondaryTarget: string;
   hoverMuscleNotice: string;
+
+  // Step 7: Weekly Report Additions
+  weeklyReportBtn: string;
+  weeklyReportTitle: string;
+  weeklyReportSub: string;
+  daysCleared: string;
+  totalSetsLogged: string;
+  movementsMastered: string;
+  downloadReportImage: string;
+  downloading: string;
+  shareSuccess: string;
+  weeklyQuote: string;
+  verifiedBadge: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -92,6 +105,19 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     primaryTarget: 'Primary',
     secondaryTarget: 'Secondary',
     hoverMuscleNotice: 'Hover muscle',
+
+    weeklyReportBtn: 'Weekly Report',
+    weeklyReportTitle: 'WEEKLY COMPLETION REPORT',
+    weeklyReportSub: '5-Day Hypertrophy Recomp Summary',
+    daysCleared: 'Days Cleared',
+    totalSetsLogged: 'Total Sets Logged',
+    movementsMastered: 'Movements Mastered',
+    downloadReportImage: 'Download Image',
+    downloading: 'Exporting PNG...',
+    shareSuccess: 'Report Image Downloaded!',
+    weeklyQuote:
+      'Consistency compounds. Form stayed strict, zero sets skipped. Ready for progressive overload next week.',
+    verifiedBadge: 'Verified Aesthetic Routine by Marcus',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -137,6 +163,18 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     primaryTarget: '主目标',
     secondaryTarget: '辅目标',
     hoverMuscleNotice: '悬停查看肌群',
+
+    weeklyReportBtn: '本周战报',
+    weeklyReportTitle: '本周训练完成战报',
+    weeklyReportSub: '5天增肌分化全满贯总结',
+    daysCleared: '完成天数',
+    totalSetsLogged: '打卡组数',
+    movementsMastered: '动作项',
+    downloadReportImage: '下载战报图片',
+    downloading: '导出图片中...',
+    shareSuccess: '战报图片已保存！',
+    weeklyQuote: '自律铸就体态。动作标准，未漏一组。下周继续渐进超负荷！',
+    verifiedBadge: 'Marcus 美学增肌认证战报',
   },
 };
 
