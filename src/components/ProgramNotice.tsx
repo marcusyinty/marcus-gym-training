@@ -25,7 +25,7 @@ export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiv
         aria-expanded={isExpanded}
         className="flex-1 min-w-0 min-h-10 flex items-center gap-1.5 text-left cursor-pointer"
       >
-        <span className={`block text-xs leading-snug text-zinc-400 ${isExpanded ? '' : 'line-clamp-2'}`}>
+        <span className={`text-xs leading-snug text-zinc-400 ${isExpanded ? 'block' : 'line-clamp-2'}`}>
           <span className="font-semibold text-white">{t.beginnerStandardTitle}</span>
           {' · '}
           {t.beginnerStandardText}
