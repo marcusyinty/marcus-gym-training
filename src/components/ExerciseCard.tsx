@@ -357,40 +357,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <ChevronDown className={`w-4 h-4 shrink-0 text-zinc-400 transition-transform ${isCueExpanded ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Muscle map + secondary muscles, collapsed by default */}
-          <button
-            onClick={() => setIsMuscleMapOpen((open) => !open)}
-            aria-expanded={isMuscleMapOpen}
-            className="mt-2 w-full min-h-10 flex items-center gap-2 px-3 rounded-xl border border-[#222227] bg-[#0d0d10] text-xs font-bold text-zinc-300 cursor-pointer"
-          >
-            <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{t.muscleMapTab}</span>
-            <ChevronDown className={`ml-auto w-4 h-4 text-zinc-400 transition-transform ${isMuscleMapOpen ? 'rotate-180' : ''}`} />
-          </button>
-          {isMuscleMapOpen && (
-            <div className="mt-2 bg-[#09090b] border border-[#222227] rounded-xl p-3">
-              <div className="flex justify-center">
-                <AnatomyMap
-                  primaryMuscles={exercise.primaryMuscleGroupIds || []}
-                  secondaryMuscles={exercise.secondaryMuscleGroupIds || []}
-                  size="md"
-                  lang={lang}
-                />
-              </div>
-              {secondaryMuscles.length > 0 && (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {secondaryMuscles.map((muscle) => (
-                    <span
-                      key={muscle}
-                      className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/60"
-                    >
-                      {muscle}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
           </>
           )}
         </div>
@@ -521,6 +487,45 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
           )}
         </div>
+
+        {!isWide && (
+          <>
+            {/* Muscle map + secondary muscles, collapsed by default; below the log rows since it is rarely needed mid-set */}
+            <button
+              onClick={() => setIsMuscleMapOpen((open) => !open)}
+              aria-expanded={isMuscleMapOpen}
+              className="mt-3 w-full min-h-10 flex items-center gap-2 px-3 rounded-xl border border-[#222227] bg-[#0d0d10] text-xs font-bold text-zinc-300 cursor-pointer"
+            >
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{t.muscleMapTab}</span>
+              <ChevronDown className={`ml-auto w-4 h-4 text-zinc-400 transition-transform ${isMuscleMapOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isMuscleMapOpen && (
+              <div className="mt-2 bg-[#09090b] border border-[#222227] rounded-xl p-3">
+                <div className="flex justify-center">
+                  <AnatomyMap
+                    primaryMuscles={exercise.primaryMuscleGroupIds || []}
+                    secondaryMuscles={exercise.secondaryMuscleGroupIds || []}
+                    size="md"
+                    lang={lang}
+                  />
+                </div>
+                {secondaryMuscles.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {secondaryMuscles.map((muscle) => (
+                      <span
+                        key={muscle}
+                        className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/60"
+                      >
+                        {muscle}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
