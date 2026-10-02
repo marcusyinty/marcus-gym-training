@@ -8,6 +8,7 @@ import { VideoModal } from './components/VideoModal';
 import { AboutModal } from './components/AboutModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { SetDetail } from './types/workout';
+import { parseSetsCount } from './utils/parseSetsCount';
 import { Trophy, Sparkles, Flame } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
@@ -119,8 +120,7 @@ export const App: React.FC = () => {
     let dayCompleted = 0;
 
     day.exercises.forEach((ex) => {
-      const parseSets = (s: string) => (s.includes('–') ? parseInt(s.split('–')[1], 10) || 3 : parseInt(s, 10) || 3);
-      const totalSets = parseSets(ex.sets);
+      const totalSets = parseSetsCount(ex.sets);
       const done = (completedSetsState[ex.id] || []).length;
 
       dayTotal += totalSets;

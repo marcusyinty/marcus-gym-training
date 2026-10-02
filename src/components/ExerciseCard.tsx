@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { EnrichedExercise, SetDetail } from '../types/workout';
 import { Language, uiTranslations, exerciseTranslationsZh } from '../data/translations';
 import { AnatomyMap } from './AnatomyMap';
+import { parseSetsCount } from '../utils/parseSetsCount';
 import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ExerciseCardProps {
@@ -43,14 +44,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const coachingCue = lang === 'zh' && zhEx ? zhEx.coachingCue : exercise.coachingCue;
 
   // Derive total sets count
-  const parseSetsCount = (setsStr: string): number => {
-    if (setsStr.includes('–')) {
-      const parts = setsStr.split('–');
-      return parseInt(parts[1], 10) || 3;
-    }
-    return parseInt(setsStr, 10) || 3;
-  };
-
   const totalSets = parseSetsCount(exercise.sets);
 
   // IntersectionObserver for video lazy playback
