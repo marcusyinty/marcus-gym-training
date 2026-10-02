@@ -235,3 +235,34 @@ describe('onPageHide + flush (closing the tab right after typing)', () => {
     expect(callback).not.toHaveBeenCalled();
   });
 });
+
+describe('requestPersistentStorage', () => {
+  // The module only asks once, so each test loads a fresh copy of it
+  const loadFresh = async () => {
+    vi.resetModules();
+    return (await import('./storage')).requestPersistentStorage;
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('asks the browser only once', async () => {
+    const persist = vi.fn().mockResolvedValue(true);
+    vi.stubGlobal('navigator', { storage: { persist } });
+    const requestPersistentStorage = await loadFresh();
+    requestPersistentStorage();
+    requestPersistentStorage();
+    expect(persist).toHaveBeenCalledTimes(1);
+  });
+
+  it('never throws when unsupported, throwing, or rejected', async () => {
+    vi.stubGlobal('navigator', {});
+    expect(await loadFresh()).not.toThrow();
+
+    vi.stubGlobal('navigator', { storage: { persist: () => { throw new Error('nope'); } } });
+    expect(await loadFresh()).not.toThrow();
+
+    vi.stubGlobal('navigator', { storage: { persist: () => Promise.reject(new Error('denied')) } });
+    expect(await loadFresh()).not.toThrow();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(warn).toHaveBeenCalled();
+  });
+});

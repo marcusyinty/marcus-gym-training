@@ -144,3 +144,17 @@ export const onPageHide = (
     win.removeEventListener('pagehide', callback);
   };
 };
+
+let persistRequested = false;
+
+// Asks the browser not to clear our data when the device is low on space. Safe to call anywhere; never throws.
+export const requestPersistentStorage = () => {
+  if (persistRequested) return;
+  persistRequested = true;
+  try {
+    if (typeof navigator === 'undefined' || typeof navigator.storage?.persist !== 'function') return;
+    navigator.storage.persist().catch((e) => console.warn('[storage] Persistent storage request failed.', e));
+  } catch (e) {
+    console.warn('[storage] Persistent storage request failed.', e);
+  }
+};
