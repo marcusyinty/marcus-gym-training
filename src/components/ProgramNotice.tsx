@@ -17,7 +17,7 @@ export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiv
   const t = uiTranslations[lang];
 
   return (
-    <div className="mb-4 bg-[#141417] border border-[#27272a] rounded-xl pl-3 pr-1.5 py-1 flex items-center gap-2">
+    <div className="mb-3 md:mb-4 bg-[#141417] border border-[#27272a] rounded-xl pl-3 pr-1.5 py-1 flex items-center gap-2">
       <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
 
       <button
