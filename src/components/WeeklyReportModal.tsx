@@ -9,6 +9,7 @@ interface WeeklyReportModalProps {
   lang: Language;
   days: EnrichedWorkoutDay[];
   setDetailsState: Record<string, Record<number, SetDetail>>;
+  completedSets: Record<string, number[]>;
   completedSetsCount: number;
   totalSetsCount: number;
   completedDaysCount: number;
@@ -21,6 +22,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
   lang,
   days,
   setDetailsState,
+  completedSets,
   completedSetsCount,
   totalSetsCount,
   completedDaysCount,
@@ -56,6 +58,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
 
       const detailsMap = setDetailsState[ex.id] || {};
       const setKeys = Object.keys(detailsMap);
+      // Only ticked sets count toward volume and top weight
+      const doneSetIndexes = completedSets[ex.id] || [];
 
       let maxWeight = 0;
       let maxReps = 0;
@@ -64,8 +68,9 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
 
       if (setKeys.length > 0) {
         setKeys.forEach((key) => {
-          const detail = detailsMap[parseInt(key, 10)];
-          if (detail) {
+          const setIndex = parseInt(key, 10);
+          const detail = detailsMap[setIndex];
+          if (detail && doneSetIndexes.includes(setIndex)) {
             const w = parseFloat(detail.weight || '0') || 0;
             const r = parseFloat(detail.reps || '0') || 0;
             if (detail.unit) unit = detail.unit;

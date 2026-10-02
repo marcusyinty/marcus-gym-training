@@ -334,6 +334,7 @@ export const App: React.FC = () => {
         lang={lang}
         days={enrichedDays}
         setDetailsState={setDetailsState}
+        completedSets={completedSetsState}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
         completedDaysCount={completedDaysCount}
