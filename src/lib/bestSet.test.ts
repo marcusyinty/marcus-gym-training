@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { estimateOneRepMaxKg, isNewBest, KG_PER_LB, nextPreviousBests, WorkoutLog } from './bestSet';
+import { estimateOneRepMaxKg, isNewBest, nextPreviousBests, WorkoutLog } from './bestSet';
+import { KG_PER_LB } from './units';
 import { PreviousBest, PreviousBests } from './savedData';
 
 const kg = (weight: string, reps: string): PreviousBest => ({ weight, reps, unit: 'kg' });

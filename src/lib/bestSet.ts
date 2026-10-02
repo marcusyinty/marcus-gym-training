@@ -2,18 +2,15 @@
 // - Sets are ranked by Epley estimated one-rep max: weight * (1 + reps / 30), compared in kg.
 // - Only sets that are done (ticked) count. A best never goes down, and a tie keeps the existing best.
 import { CompletedSets, PreviousBest, PreviousBests, SetDetailsByExercise } from './savedData';
-
-export const KG_PER_LB = 0.45359237;
+import { parseNumber, toKg } from './units';
 
 // Estimates closer than this count as a tie, so float rounding (e.g. the same load in kg vs lbs) never wins
 const TIE_TOLERANCE_KG = 1e-6;
 
-// Accepts plain positive numbers like "60", "62.5" or ".5". Empty, "62.", "abc", "1e3", "0" and negatives are invalid.
+// Like parseNumber, but 0 is invalid too.
 const parsePositiveNumber = (text: string): number | null => {
-  const trimmed = text.trim();
-  if (!/^(\d+(\.\d+)?|\.\d+)$/.test(trimmed)) return null;
-  const value = Number(trimmed);
-  return value > 0 ? value : null;
+  const value = parseNumber(text);
+  return value !== null && value > 0 ? value : null;
 };
 
 // Epley estimated one-rep max in kg, or null when weight or reps are invalid.
@@ -21,8 +18,7 @@ export const estimateOneRepMaxKg = (set: PreviousBest): number | null => {
   const weight = parsePositiveNumber(set.weight);
   const reps = parsePositiveNumber(set.reps);
   if (weight === null || reps === null) return null;
-  const weightKg = set.unit === 'lbs' ? weight * KG_PER_LB : weight;
-  return weightKg * (1 + reps / 30);
+  return toKg(weight, set.unit) * (1 + reps / 30);
 };
 
 // True when `candidate` clearly beats `currentBest`. An existing best that is not a valid number
