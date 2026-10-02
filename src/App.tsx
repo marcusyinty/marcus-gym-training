@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getEnrichedWorkoutProgram, workoutProgram } from './data/workoutProgram';
 import { Language, uiTranslations, dayTranslationsZh } from './data/translations';
 import { HeaderBanner } from './components/HeaderBanner';
@@ -135,12 +135,19 @@ export const App: React.FC = () => {
     totalCompletedSets += dayCompleted;
   });
 
-  // Auto-trigger weekly report modal when 100% completion is reached
+  // Auto-open weekly report at most once per session, only when the week goes from incomplete to complete.
+  // Refs start from the data loaded on first render, so a page load never counts as a change.
+  const isWeekComplete = totalProgramSets > 0 && totalCompletedSets === totalProgramSets;
+  const wasWeekCompleteRef = useRef(isWeekComplete);
+  const hasAutoOpenedReportRef = useRef(false);
+
   useEffect(() => {
-    if (totalProgramSets > 0 && totalCompletedSets === totalProgramSets) {
+    if (isWeekComplete && !wasWeekCompleteRef.current && !hasAutoOpenedReportRef.current) {
+      hasAutoOpenedReportRef.current = true;
       setIsWeeklyReportOpen(true);
     }
-  }, [totalCompletedSets, totalProgramSets]);
+    wasWeekCompleteRef.current = isWeekComplete;
+  }, [isWeekComplete]);
 
   // Handler: Toggle set completion
   const handleToggleSet = (exerciseId: string, setIndex: number) => {
