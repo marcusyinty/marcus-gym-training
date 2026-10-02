@@ -121,7 +121,6 @@ export const App: React.FC = () => {
         weight,
         reps,
         unit,
-        completed: (completedSetsState[exerciseId] || []).includes(setIndex),
         timestamp: new Date().toISOString(),
       };
 

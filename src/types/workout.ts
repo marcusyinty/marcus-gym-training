@@ -69,7 +69,9 @@ export interface SetDetail {
   weight: string;
   reps: string;
   unit: 'kg' | 'lbs';
-  completed: boolean;
+  // Old field, no longer written and always ignored: whether a set is done comes only from the
+  // completed sets (ticks). Kept optional so data saved by earlier versions still loads unchanged.
+  completed?: boolean;
   timestamp?: string;
 }
 

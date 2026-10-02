@@ -286,7 +286,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <div className="space-y-2 bg-[#09090b] border border-[#1a1a20] p-3 rounded-xl">
               {Array.from({ length: totalSets }).map((_, sIdx) => {
                 const isCompleted = completedSetIndexes.includes(sIdx);
-                const detail = setDetails[sIdx] || { weight: '', reps: '', unit: weightUnit, completed: false };
+                const detail = setDetails[sIdx] || { weight: '', reps: '', unit: weightUnit };
 
                 return (
                   <div

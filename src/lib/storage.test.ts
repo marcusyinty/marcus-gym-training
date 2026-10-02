@@ -83,6 +83,16 @@ describe('safeRead', () => {
     expect(safeRead(previousBestsItem, storage)).toEqual({ row: { weight: '50', reps: '10', unit: 'lbs' } });
   });
 
+  it('accepts set details with or without the old "completed" field and leaves the text alone', () => {
+    const raw =
+      '{"bench":{"0":{"setNumber":1,"weight":"60","reps":"8","unit":"kg","completed":true},"1":{"setNumber":2,"weight":"60","reps":"8","unit":"kg","completed":false},"2":{"setNumber":3,"weight":"60","reps":"8","unit":"kg","timestamp":"2026-10-02T15:09:36.888Z"}}}';
+    const storage = new MemoryStorage({ [setDetailsItem.key]: raw });
+    const value = safeRead(setDetailsItem, storage);
+    expect(Object.keys(value.bench)).toEqual(['0', '1', '2']);
+    expect(setDetailsItem.serialize(value)).toBe(raw);
+    expect(storage.getItem(backupKeyFor(setDetailsItem.key))).toBeNull();
+  });
+
   it('loads the old saved format unchanged, with no backup, and saves it back byte-for-byte', () => {
     const storage = new MemoryStorage(OLD_FORMAT);
     for (const item of [languageItem, completedSetsItem, setDetailsItem, previousBestsItem]) {
