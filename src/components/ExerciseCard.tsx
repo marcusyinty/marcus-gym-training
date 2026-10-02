@@ -101,6 +101,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   const media = exercise.media;
 
+  // Number boxes in the set rows: 48px tall, 18px digits, desktop spinner arrows hidden
+  const setInputClass =
+    'w-full h-12 bg-[#18181c] border border-zinc-700 rounded-lg px-1 pt-0.5 pb-3.5 text-[18px] leading-none font-semibold tabular-nums text-white text-center placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+  const setInputLabelClass =
+    'pointer-events-none absolute inset-x-0 bottom-1 text-center text-xs leading-none font-bold text-zinc-400';
+
   const prevBestText =
     previousBest && (previousBest.weight || previousBest.reps)
       ? t.prevBest(displayWeight(previousBest.weight, previousBest.unit, weightUnit) || '0', weightUnit, previousBest.reps || '0')
@@ -389,16 +395,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
             <div className="flex items-center gap-2">
               {/* kg / lbs Unit Switcher */}
-              <div className="flex items-center bg-[#18181c] border border-zinc-800 rounded-md p-0.5 text-[10px] font-bold">
+              <div className="flex items-center h-10 bg-[#18181c] ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs font-bold">
                 <button
                   onClick={() => onChangeWeightUnit('kg')}
-                  className={`px-1.5 py-0.5 rounded ${weightUnit === 'kg' ? 'bg-emerald-500 text-black' : 'text-zinc-400'}`}
+                  aria-pressed={weightUnit === 'kg'}
+                  className={`h-10 min-w-10 px-2 cursor-pointer ${weightUnit === 'kg' ? 'bg-emerald-500 text-black' : 'text-zinc-400 hover:text-white'}`}
                 >
                   kg
                 </button>
                 <button
                   onClick={() => onChangeWeightUnit('lbs')}
-                  className={`px-1.5 py-0.5 rounded ${weightUnit === 'lbs' ? 'bg-emerald-500 text-black' : 'text-zinc-400'}`}
+                  aria-pressed={weightUnit === 'lbs'}
+                  className={`h-10 min-w-10 px-2 cursor-pointer ${weightUnit === 'lbs' ? 'bg-emerald-500 text-black' : 'text-zinc-400 hover:text-white'}`}
                 >
                   lbs
                 </button>
@@ -406,66 +414,83 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
               <button
                 onClick={() => setIsLogExpanded(!isLogExpanded)}
-                className="text-zinc-400 hover:text-white p-1 rounded-md"
+                aria-expanded={isLogExpanded}
+                aria-label={t.logSessionLabel(completedSetIndexes.length, totalSets)}
+                className="h-10 w-10 flex items-center justify-center text-zinc-400 hover:text-white rounded-lg cursor-pointer"
               >
                 {isLogExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          {/* Quick Input Rows for Each Set */}
+          {/* Set rows: [set number] [weight] x [reps] [tick] on one line, even at 320px */}
           {isLogExpanded && (
-            <div className="space-y-2 bg-[#09090b] border border-[#1a1a20] p-3 rounded-xl">
+            <div className="space-y-1.5 bg-[#09090b] border border-[#1a1a20] p-1.5 sm:p-3 rounded-xl">
               {Array.from({ length: totalSets }).map((_, sIdx) => {
                 const isCompleted = completedSetIndexes.includes(sIdx);
                 const detail = setDetails[sIdx] || { weight: '', reps: '', unit: weightUnit };
+                const setNumber = sIdx + 1;
 
                 return (
                   <div
                     key={sIdx}
-                    className={`flex items-center justify-between gap-2 p-2 rounded-lg border transition-colors ${
-                      isCompleted ? 'bg-emerald-950/20 border-emerald-500/40' : 'bg-[#121215] border-[#222227]'
+                    data-set-row
+                    className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg border transition-colors ${
+                      isCompleted ? 'bg-emerald-500/15 border-emerald-500' : 'bg-[#121215] border-[#222227]'
                     }`}
                   >
-                    {/* Completion Button */}
-                    <button
-                      onClick={() => onToggleSet(exercise.id, sIdx)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-xs transition-all ${
-                        isCompleted
-                          ? 'bg-emerald-500 text-black shadow-sm shadow-emerald-500/30'
-                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    {/* Set number ("Set 1" for screen readers) */}
+                    <span
+                      className={`w-6 h-6 shrink-0 rounded-md flex items-center justify-center text-xs font-extrabold ${
+                        isCompleted ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-zinc-300'
                       }`}
                     >
-                      <Check className={`w-3.5 h-3.5 ${isCompleted ? 'stroke-[3]' : 'opacity-40'}`} />
-                      <span>{t.setBtn(sIdx + 1)}</span>
-                    </button>
+                      <span aria-hidden="true">{setNumber}</span>
+                      <span className="sr-only">{t.setBtn(setNumber)}</span>
+                    </span>
 
-                    {/* Inputs: Weight & Reps */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center gap-1">
+                    {/* Weight and reps: 18px digits (never below 16px, or iPhone Safari zooms in); unit label inside the box */}
+                    <div className="flex-1 min-w-0 flex items-center gap-1">
+                      <div className="relative flex-1 min-w-0 max-w-28">
                         <input
                           type="number"
                           placeholder={t.weightPlaceholder}
+                          aria-label={t.weightInputLabel(setNumber, weightUnit)}
                           value={displayWeight(detail.weight || '', detail.unit, weightUnit)}
                           onChange={(e) => onUpdateWeight(exercise.id, sIdx, e.target.value)}
-                          className="w-14 sm:w-16 bg-[#18181c] border border-zinc-700 rounded-md px-2 py-1 text-xs text-white text-center font-mono focus:outline-none focus:border-emerald-500"
+                          className={setInputClass}
                         />
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase">{weightUnit}</span>
+                        <span className={setInputLabelClass}>{weightUnit}</span>
                       </div>
 
-                      <span className="text-zinc-600 text-xs">×</span>
+                      <span aria-hidden="true" className="text-xs text-zinc-500">×</span>
 
-                      <div className="flex items-center gap-1">
+                      <div className="relative w-[3.75rem] shrink-0">
                         <input
                           type="number"
                           placeholder={t.repsPlaceholder}
+                          aria-label={t.repsInputLabel(setNumber)}
                           value={detail.reps || ''}
                           onChange={(e) => onUpdateReps(exercise.id, sIdx, e.target.value)}
-                          className="w-12 sm:w-14 bg-[#18181c] border border-zinc-700 rounded-md px-2 py-1 text-xs text-white text-center font-mono focus:outline-none focus:border-emerald-500"
+                          className={setInputClass}
                         />
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase">{t.reps.toLowerCase()}</span>
+                        <span className={setInputLabelClass}>{t.reps.toLowerCase()}</span>
                       </div>
                     </div>
+
+                    {/* Done / not done (same handler as before) */}
+                    <button
+                      onClick={() => onToggleSet(exercise.id, sIdx)}
+                      aria-pressed={isCompleted}
+                      aria-label={t.setDoneLabel(setNumber)}
+                      className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                        isCompleted
+                          ? 'bg-emerald-500 text-black shadow-sm shadow-emerald-500/30'
+                          : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
+                      }`}
+                    >
+                      <Check className={`w-6 h-6 ${isCompleted ? 'stroke-[3]' : ''}`} />
+                    </button>
                   </div>
                 );
               })}

@@ -28,6 +28,9 @@ export interface UiTranslations {
   setBtn: (setNum: number) => string;
   weightPlaceholder: string;
   repsPlaceholder: string;
+  weightInputLabel: (setNum: number, unit: string) => string;
+  repsInputLabel: (setNum: number) => string;
+  setDoneLabel: (setNum: number) => string;
   dayCompleteTitle: (dayNum: number) => string;
   dayCompleteText: (dayTitle: string) => string;
   footerTitle: string;
@@ -87,8 +90,11 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     coachingCueLabel: 'COACHING CUE',
     logSessionLabel: (completed, total) => `Log Session (${completed}/${total} Sets)`,
     setBtn: (setNum) => `Set ${setNum}`,
-    weightPlaceholder: '0',
-    repsPlaceholder: '0',
+    weightPlaceholder: '–',
+    repsPlaceholder: '–',
+    weightInputLabel: (setNum, unit) => `Set ${setNum} weight (${unit})`,
+    repsInputLabel: (setNum) => `Set ${setNum} reps`,
+    setDoneLabel: (setNum) => `Set ${setNum} done`,
     dayCompleteTitle: (dayNum) => `Day ${dayNum} Complete! 🎉`,
     dayCompleteText: (dayTitle) =>
       `Outstanding work on ${dayTitle}. Fuel up with protein and rest up for your next training session.`,
@@ -148,8 +154,11 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     coachingCueLabel: '动作要领',
     logSessionLabel: (completed, total) => `训练打卡 (${completed}/${total} 组)`,
     setBtn: (setNum) => `第 ${setNum} 组`,
-    weightPlaceholder: '0',
-    repsPlaceholder: '0',
+    weightPlaceholder: '–',
+    repsPlaceholder: '–',
+    weightInputLabel: (setNum, unit) => `第 ${setNum} 组 重量（${unit}）`,
+    repsInputLabel: (setNum) => `第 ${setNum} 组 次数`,
+    setDoneLabel: (setNum) => `第 ${setNum} 组 已完成`,
     dayCompleteTitle: (dayNum) => `第 ${dayNum} 天训练打卡完成！🎉`,
     dayCompleteText: (dayTitle) => `【${dayTitle}】训练顺利完成！及时补充蛋白质与碳水，保持充足休息。`,
     footerTitle: 'Marcus 5天美学形体增肌训练系统',
