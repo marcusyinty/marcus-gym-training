@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { Language, uiTranslations } from '../data/translations';
 import { Dumbbell, ShieldCheck, CheckCircle2, RotateCcw, AlertTriangle, X, Info, Trophy, Award } from 'lucide-react';
 
@@ -28,9 +28,26 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const t = uiTranslations[lang];
   const progressPercent = totalSetsCount > 0 ? Math.round((completedSetsCount / totalSetsCount) * 100) : 0;
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  // Publish the real header height as --header-height so the sticky day tabs sit right below it
+  useLayoutEffect(() => {
+    const headerElem = headerRef.current;
+    if (!headerElem) return;
+
+    const updateHeaderHeight = () => {
+      document.documentElement.style.setProperty('--header-height', `${headerElem.getBoundingClientRect().height}px`);
+    };
+
+    updateHeaderHeight();
+    const observer = new ResizeObserver(updateHeaderHeight);
+    observer.observe(headerElem, { box: 'border-box' });
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <header className="w-full bg-[#0c0c0e] border-b border-[#1f1f23] sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
+    <header ref={headerRef} className="w-full bg-[#0c0c0e] border-b border-[#1f1f23] sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
       <div className="max-w-4xl mx-auto px-4 py-3.5 sm:px-6">
         {/* Top Brand & Language Bar */}
         <div className="flex items-center justify-between gap-3 mb-2.5">

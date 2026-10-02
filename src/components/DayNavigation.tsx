@@ -18,7 +18,7 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
   dayCompletionStats,
 }) => {
   return (
-    <nav className="w-full bg-[#09090b] border-b border-[#18181b] py-3 sticky top-[125px] sm:top-[129px] z-30 backdrop-blur-md bg-opacity-95">
+    <nav className="w-full bg-[#09090b] border-b border-[#18181b] py-3 sticky top-[var(--header-height,125px)] z-30 backdrop-blur-md bg-opacity-95">
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5 scroll-smooth">
           {days.map((day) => {
