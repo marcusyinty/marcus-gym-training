@@ -10,8 +10,9 @@ import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { SetDetail } from './types/workout';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
-import { completedSetsItem, languageItem, previousBestsItem, setDetailsItem } from './lib/savedData';
+import { completedSetsItem, languageItem, previousBestsItem, setDetailsItem, weightUnitItem } from './lib/savedData';
 import { nextPreviousBests, WorkoutLog } from './lib/bestSet';
+import { WeightedSet, withRepsEdit, withWeightEdit } from './lib/units';
 import { Trophy, Sparkles, Flame } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
@@ -22,6 +23,7 @@ export const App: React.FC = () => {
   const [completedSetsState, setCompletedSetsState] = usePersistentState(completedSetsItem);
   const [setDetailsState, setSetDetailsState] = usePersistentState(setDetailsItem);
   const [previousBestsState, setPreviousBestsState] = usePersistentState(previousBestsItem);
+  const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -121,21 +123,14 @@ export const App: React.FC = () => {
     });
   };
 
-  // Handler: Update set weight/reps details (previous best is updated by the effect above)
-  const handleUpdateSetDetail = (
-    exerciseId: string,
-    setIndex: number,
-    weight: string,
-    reps: string,
-    unit: 'kg' | 'lbs'
-  ) => {
+  // Handlers: Update a set's weight or reps (previous best is updated by the effect above).
+  // A new weight is saved in the current unit; editing only reps keeps the set's stored weight and unit.
+  const updateSetDetail = (exerciseId: string, setIndex: number, edit: (set: SetDetail | undefined) => WeightedSet) => {
     setSetDetailsState((prev) => {
       const exDetails = prev[exerciseId] || {};
       const updatedDetail: SetDetail = {
         setNumber: setIndex + 1,
-        weight,
-        reps,
-        unit,
+        ...edit(exDetails[setIndex]),
         timestamp: new Date().toISOString(),
       };
 
@@ -148,6 +143,12 @@ export const App: React.FC = () => {
       };
     });
   };
+
+  const handleUpdateWeight = (exerciseId: string, setIndex: number, weight: string) =>
+    updateSetDetail(exerciseId, setIndex, (set) => withWeightEdit(set, weight, weightUnit));
+
+  const handleUpdateReps = (exerciseId: string, setIndex: number, reps: string) =>
+    updateSetDetail(exerciseId, setIndex, (set) => withRepsEdit(set, reps, weightUnit));
 
   // Reset active day's progress
   const handleResetActiveDay = () => {
@@ -268,8 +269,11 @@ export const App: React.FC = () => {
               completedSetIndexes={completedSetsState[exercise.id] || []}
               setDetails={setDetailsState[exercise.id] || {}}
               previousBest={previousBestsState[exercise.id]}
+              weightUnit={weightUnit}
+              onChangeWeightUnit={setWeightUnit}
               onToggleSet={handleToggleSet}
-              onUpdateSetDetail={handleUpdateSetDetail}
+              onUpdateWeight={handleUpdateWeight}
+              onUpdateReps={handleUpdateReps}
               onOpenVideoModal={handleOpenVideoModal}
             />
           ))}

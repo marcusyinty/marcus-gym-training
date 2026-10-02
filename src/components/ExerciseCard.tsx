@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { EnrichedExercise, SetDetail } from '../types/workout';
 import { Language, uiTranslations, exerciseTranslationsZh } from '../data/translations';
 import { AnatomyMap } from './AnatomyMap';
+import { displayWeight, WeightUnit } from '../lib/units';
 import { parseSetsCount } from '../utils/parseSetsCount';
 import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -12,8 +13,11 @@ interface ExerciseCardProps {
   completedSetIndexes: number[];
   setDetails: Record<number, SetDetail>;
   previousBest?: { weight: string; reps: string; unit: 'kg' | 'lbs' };
+  weightUnit: WeightUnit;
+  onChangeWeightUnit: (unit: WeightUnit) => void;
   onToggleSet: (exerciseId: string, setIndex: number) => void;
-  onUpdateSetDetail: (exerciseId: string, setIndex: number, weight: string, reps: string, unit: 'kg' | 'lbs') => void;
+  onUpdateWeight: (exerciseId: string, setIndex: number, weight: string) => void;
+  onUpdateReps: (exerciseId: string, setIndex: number, reps: string) => void;
   onOpenVideoModal: (videoUrl: string, posterUrl: string, title: string) => void;
 }
 
@@ -24,15 +28,17 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   completedSetIndexes,
   setDetails,
   previousBest,
+  weightUnit,
+  onChangeWeightUnit,
   onToggleSet,
-  onUpdateSetDetail,
+  onUpdateWeight,
+  onUpdateReps,
   onOpenVideoModal,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeMediaTab, setActiveMediaTab] = useState<'video' | 'anatomy'>('video');
-  const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
   const [isLogExpanded, setIsLogExpanded] = useState(true);
 
   const t = uiTranslations[lang];
@@ -204,7 +210,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               {previousBest && (previousBest.weight || previousBest.reps) && (
                 <div className="flex items-center gap-1 text-[10px] font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
                   <Award className="w-3 h-3 text-cyan-400" />
-                  <span>{t.prevBest(previousBest.weight || '0', previousBest.unit, previousBest.reps || '0')}</span>
+                  <span>
+                    {t.prevBest(
+                      displayWeight(previousBest.weight, previousBest.unit, weightUnit) || '0',
+                      weightUnit,
+                      previousBest.reps || '0'
+                    )}
+                  </span>
                 </div>
               )}
             </div>
@@ -259,13 +271,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               {/* kg / lbs Unit Switcher */}
               <div className="flex items-center bg-[#18181c] border border-zinc-800 rounded-md p-0.5 text-[10px] font-bold">
                 <button
-                  onClick={() => setWeightUnit('kg')}
+                  onClick={() => onChangeWeightUnit('kg')}
                   className={`px-1.5 py-0.5 rounded ${weightUnit === 'kg' ? 'bg-emerald-500 text-black' : 'text-zinc-400'}`}
                 >
                   kg
                 </button>
                 <button
-                  onClick={() => setWeightUnit('lbs')}
+                  onClick={() => onChangeWeightUnit('lbs')}
                   className={`px-1.5 py-0.5 rounded ${weightUnit === 'lbs' ? 'bg-emerald-500 text-black' : 'text-zinc-400'}`}
                 >
                   lbs
@@ -314,10 +326,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         <input
                           type="number"
                           placeholder={t.weightPlaceholder}
-                          value={detail.weight || ''}
-                          onChange={(e) =>
-                            onUpdateSetDetail(exercise.id, sIdx, e.target.value, detail.reps, weightUnit)
-                          }
+                          value={displayWeight(detail.weight || '', detail.unit, weightUnit)}
+                          onChange={(e) => onUpdateWeight(exercise.id, sIdx, e.target.value)}
                           className="w-14 sm:w-16 bg-[#18181c] border border-zinc-700 rounded-md px-2 py-1 text-xs text-white text-center font-mono focus:outline-none focus:border-emerald-500"
                         />
                         <span className="text-[10px] text-zinc-400 font-bold uppercase">{weightUnit}</span>
@@ -330,9 +340,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                           type="number"
                           placeholder={t.repsPlaceholder}
                           value={detail.reps || ''}
-                          onChange={(e) =>
-                            onUpdateSetDetail(exercise.id, sIdx, detail.weight, e.target.value, weightUnit)
-                          }
+                          onChange={(e) => onUpdateReps(exercise.id, sIdx, e.target.value)}
                           className="w-12 sm:w-14 bg-[#18181c] border border-zinc-700 rounded-md px-2 py-1 text-xs text-white text-center font-mono focus:outline-none focus:border-emerald-500"
                         />
                         <span className="text-[10px] text-zinc-400 font-bold uppercase">{t.reps.toLowerCase()}</span>
