@@ -218,6 +218,7 @@ export const workoutProgram: WorkoutDay[] = [
       },
       {
         id: 'reverse-crunch-abs-a',
+        exerciseId: 'reverse-crunch',
         name: 'Reverse Crunch',
         sets: '3',
         reps: '10–15',
@@ -335,6 +336,7 @@ export const workoutProgram: WorkoutDay[] = [
       },
       {
         id: 'reverse-crunch-abs-b',
+        exerciseId: 'reverse-crunch',
         name: 'Reverse Crunch',
         sets: '2–3',
         reps: '10–15',
@@ -356,6 +358,7 @@ export const workoutProgram: WorkoutDay[] = [
     exercises: [
       {
         id: 'rdl-lower-b',
+        exerciseId: 'rdl',
         name: 'Romanian Deadlift (RDL)',
         sets: '3',
         reps: '8–10',
@@ -368,6 +371,7 @@ export const workoutProgram: WorkoutDay[] = [
       },
       {
         id: 'seated-leg-curl-lower-b',
+        exerciseId: 'seated-leg-curl',
         name: 'Seated Leg Curl',
         sets: '3',
         reps: '10–12',
@@ -380,6 +384,7 @@ export const workoutProgram: WorkoutDay[] = [
       },
       {
         id: 'leg-press-lower-b',
+        exerciseId: 'leg-press',
         name: 'Leg Press',
         sets: '3',
         reps: '8–10',

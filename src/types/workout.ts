@@ -35,7 +35,9 @@ export interface ExerciseMedia {
 }
 
 export interface Exercise {
-  id: string;
+  id: string; // slot id: unique per day (translations depend on it)
+  // Shared id when the same exercise appears on more than one day; use getExerciseId() to read it
+  exerciseId?: string;
   name: string;
   sets: string;
   reps: string;
