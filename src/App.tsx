@@ -339,6 +339,7 @@ export const App: React.FC = () => {
         days={enrichedDays}
         setDetailsState={setDetailsState}
         completedSets={completedSetsState}
+        weightUnit={weightUnit}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
         completedDaysCount={completedDaysCount}

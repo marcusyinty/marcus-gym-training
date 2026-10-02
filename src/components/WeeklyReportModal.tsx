@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { EnrichedWorkoutDay, SetDetail } from '../types/workout';
 import { Language, uiTranslations, dayTranslationsZh, exerciseTranslationsZh } from '../data/translations';
 import { toPng } from 'html-to-image';
+import { convertWeight, displayWeight, parseNumber, toKg, WeightUnit } from '../lib/units';
 import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale, Dumbbell as WeightIcon } from 'lucide-react';
 
 interface WeeklyReportModalProps {
@@ -10,6 +11,7 @@ interface WeeklyReportModalProps {
   days: EnrichedWorkoutDay[];
   setDetailsState: Record<string, Record<number, SetDetail>>;
   completedSets: Record<string, number[]>;
+  weightUnit: WeightUnit;
   completedSetsCount: number;
   totalSetsCount: number;
   completedDaysCount: number;
@@ -23,6 +25,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
   days,
   setDetailsState,
   completedSets,
+  weightUnit,
   completedSetsCount,
   totalSetsCount,
   completedDaysCount,
@@ -44,9 +47,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
 
   const progressPercent = totalSetsCount > 0 ? Math.round((completedSetsCount / totalSetsCount) * 100) : 0;
 
-  // Calculate total tonnage and extract exercise load summaries
+  // Calculate total tonnage and extract exercise load summaries, all in the current weight unit
   let grandTotalTonnage = 0;
-  let defaultUnit = 'kg';
 
   const dayExerciseSummaries = days.map((day) => {
     const zhDay = dayTranslationsZh[day.id];
@@ -61,43 +63,43 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
       // Only ticked sets count toward volume and top weight
       const doneSetIndexes = completedSets[ex.id] || [];
 
-      let maxWeight = 0;
+      let maxWeightKg = 0;
+      let maxWeightText = '';
       let maxReps = 0;
       let exerciseTonnage = 0;
-      let unit = 'kg';
 
       if (setKeys.length > 0) {
         setKeys.forEach((key) => {
           const setIndex = parseInt(key, 10);
           const detail = detailsMap[setIndex];
           if (detail && doneSetIndexes.includes(setIndex)) {
-            const w = parseFloat(detail.weight || '0') || 0;
+            // Each set keeps the unit it was typed in: compare tops in kg, add volume in the current unit
+            const w = parseNumber(detail.weight) ?? 0;
             const r = parseFloat(detail.reps || '0') || 0;
-            if (detail.unit) unit = detail.unit;
+            const wKg = toKg(w, detail.unit);
 
-            if (w > maxWeight) {
-              maxWeight = w;
+            if (wKg > maxWeightKg) {
+              maxWeightKg = wKg;
+              maxWeightText = displayWeight(detail.weight, detail.unit, weightUnit);
               maxReps = r;
-            } else if (w === maxWeight && r > maxReps) {
+            } else if (wKg === maxWeightKg && r > maxReps) {
               maxReps = r;
             }
 
-            exerciseTonnage += w * r;
+            exerciseTonnage += convertWeight(w, detail.unit, weightUnit) * r;
           }
         });
       }
 
-      defaultUnit = unit;
       grandTotalTonnage += exerciseTonnage;
 
-      const isBodyweight = maxWeight === 0;
+      const isBodyweight = maxWeightKg === 0;
 
       return {
         id: ex.id,
         name,
-        maxWeight,
+        maxWeightText,
         maxReps: maxReps || 12,
-        unit,
         exerciseTonnage,
         isBodyweight,
       };
@@ -230,7 +232,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                   {t.totalVolumeLifted}
                 </span>
                 <span className="text-base font-black text-white font-mono mt-0.5 block">
-                  {grandTotalTonnage > 0 ? `${Math.round(grandTotalTonnage).toLocaleString()} ${defaultUnit}` : '89 Sets'}
+                  {grandTotalTonnage > 0 ? `${Math.round(grandTotalTonnage).toLocaleString()} ${weightUnit}` : '89 Sets'}
                 </span>
               </div>
             </div>
@@ -263,7 +265,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                           <span className="font-mono font-bold text-emerald-300 shrink-0 text-[10px] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                             {ex.isBodyweight
                               ? `BW × ${ex.maxReps}`
-                              : `${ex.maxWeight} ${ex.unit} × ${ex.maxReps}`}
+                              : `${ex.maxWeightText} ${weightUnit} × ${ex.maxReps}`}
                           </span>
                         </div>
                       ))}
