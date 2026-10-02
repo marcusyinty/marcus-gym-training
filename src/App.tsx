@@ -14,7 +14,8 @@ import { usePersistentState } from './hooks/usePersistentState';
 import { completedSetsItem, languageItem, previousBestsItem, setDetailsItem, weightUnitItem } from './lib/savedData';
 import { nextPreviousBests, WorkoutLog } from './lib/bestSet';
 import { WeightedSet, withRepsEdit, withWeightEdit } from './lib/units';
-import { Trophy, Sparkles, Flame } from 'lucide-react';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { Trophy, Sparkles, Flame, ChevronDown } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
 
@@ -29,6 +30,9 @@ export const App: React.FC = () => {
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
+  const [isDayDescExpanded, setIsDayDescExpanded] = useState<boolean>(false);
+  // Phones (below md) get a compact Day card; md and wider keep the original one
+  const isWide = useMediaQuery('(min-width: 768px)');
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -220,6 +224,7 @@ export const App: React.FC = () => {
         <ProgramNotice lang={lang} onResetActiveDay={handleResetActiveDay} onResetAll={handleResetAll} />
 
         {/* Active Day Header */}
+        {isWide ? (
         <div className="mb-6 bg-[#121215] border border-[#27272a] rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -259,6 +264,74 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
+        ) : (
+          /* Compact Day card (phones): same numbers as above, about 90px tall */
+          <div className="mb-3 bg-[#121215] border border-[#27272a] rounded-2xl px-3 py-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs leading-4 font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 rounded border border-emerald-500/20 whitespace-nowrap">
+                    {t.dayPill(activeDay.dayNumber)}
+                  </span>
+                  <span className="text-xs leading-4 text-zinc-400 font-medium whitespace-nowrap">
+                    {t.exerciseCount(activeDay.exercises.length)}
+                  </span>
+                </div>
+                <h2 className="mt-0.5 text-lg leading-6 font-extrabold text-white tracking-tight font-['Plus_Jakarta_Sans'] line-clamp-2">
+                  {activeDayTitle}
+                </h2>
+              </div>
+
+              {/* Day Progress */}
+              <div className="shrink-0 flex items-center gap-2">
+                <div className="text-right leading-none">
+                  <span className="block text-sm font-extrabold text-white font-mono whitespace-nowrap">
+                    {activeDayStats.completed} / {activeDayStats.total}
+                  </span>
+                  <span className="block mt-1 text-xs font-bold uppercase text-zinc-400">{t.sets}</span>
+                </div>
+                {isCurrentDayComplete ? (
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500 text-black flex items-center justify-center">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                ) : (
+                  <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <Flame className="w-4 h-4 text-emerald-400" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description: 1 line, tap to show all. Padding + negative margin give a 40px tap area without a taller card */}
+            <button
+              onClick={() => setIsDayDescExpanded((expanded) => !expanded)}
+              aria-expanded={isDayDescExpanded}
+              className="relative w-full -mt-2.5 pt-3 -mb-3 pb-3 flex items-start gap-1.5 text-left cursor-pointer"
+            >
+              <span className={`flex-1 min-w-0 text-xs leading-4 text-zinc-300 ${isDayDescExpanded ? 'block' : 'line-clamp-1'}`}>
+                {activeDayDesc}
+              </span>
+              <ChevronDown className={`w-4 h-4 shrink-0 text-zinc-400 transition-transform ${isDayDescExpanded ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Completed / total sets of this day */}
+            <div
+              role="progressbar"
+              aria-label={t.dayProgress}
+              aria-valuemin={0}
+              aria-valuemax={activeDayStats.total}
+              aria-valuenow={activeDayStats.completed}
+              className="relative mt-1.5 h-1.5 rounded-full bg-zinc-800 overflow-hidden"
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-[width] duration-300"
+                style={{ width: `${activeDayStats.total > 0 ? (activeDayStats.completed / activeDayStats.total) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Exercise List Cards */}
         <div className="space-y-6">

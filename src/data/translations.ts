@@ -15,6 +15,8 @@ export interface UiTranslations {
   cancel: string;
   dayRoutineTitle: (dayNum: number) => string;
   exercisesPrescribed: (count: number) => string;
+  dayPill: (dayNum: number) => string;
+  exerciseCount: (count: number) => string;
   dayProgress: string;
   formDemoTab: string;
   muscleMapTab: string;
@@ -79,6 +81,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     cancel: 'Cancel',
     dayRoutineTitle: (dayNum) => `Day ${dayNum} Routine`,
     exercisesPrescribed: (count) => `${count} Exercises Prescribed`,
+    dayPill: (dayNum) => `Day ${dayNum}`,
+    exerciseCount: (count) => `${count} Exercises`,
     dayProgress: 'Day Progress',
     formDemoTab: 'Form Demo',
     muscleMapTab: 'Muscle Map',
@@ -143,6 +147,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     cancel: '取消',
     dayRoutineTitle: (dayNum) => `第 ${dayNum} 天训练`,
     exercisesPrescribed: (count) => `包含 ${count} 项动作`,
+    dayPill: (dayNum) => `第 ${dayNum} 天`,
+    exerciseCount: (count) => `${count} 项动作`,
     dayProgress: '本日进度',
     formDemoTab: '动作示范',
     muscleMapTab: '目标肌群',
