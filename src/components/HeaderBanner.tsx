@@ -43,69 +43,73 @@ export const HeaderBanner: React.FC<HeaderBannerProps> = ({
 
   return (
     <header ref={headerRef} className="w-full bg-[#0c0c0e] border-b border-[#1f1f23] sticky top-0 z-40 backdrop-blur-md bg-opacity-90">
-      <div className="max-w-4xl mx-auto px-4 py-3.5 sm:px-6">
-        {/* Top Brand & Language Bar */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 p-0.5 flex items-center justify-center shadow-lg shadow-emerald-950/40 shrink-0">
-              <div className="w-full h-full bg-[#09090b] rounded-[10px] flex items-center justify-center">
-                <Dumbbell className="w-5 h-5 text-emerald-400" />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-white font-['Plus_Jakarta_Sans']">
-                  {t.appTitle}
-                </h1>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {t.programBadge}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 font-medium">{t.appSubTitle}</p>
+      {/* One slim row: logo + title, then weekly report, EN | 中文 and About (all 40px tap targets) */}
+      <div className="max-w-4xl mx-auto px-2.5 max-[359px]:px-2 sm:px-6 py-1.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {/* Logo hidden below 360px wide so the full title fits */}
+          <div className="max-[359px]:hidden w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 p-0.5 flex items-center justify-center shadow-lg shadow-emerald-950/40 shrink-0">
+            <div className="w-full h-full bg-[#09090b] rounded-md flex items-center justify-center">
+              <Dumbbell className="w-3.5 h-3.5 text-emerald-400" />
             </div>
           </div>
-
-          {/* Right Top Controls */}
-          <div className="flex items-center gap-2">
-            {/* Weekly Report Button */}
-            <button
-              onClick={onOpenWeeklyReport}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-extrabold transition-all cursor-pointer shrink-0"
-              title="View Weekly Report Card"
-            >
-              <Trophy className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">{t.weeklyReportBtn}</span>
-            </button>
-
-            {/* Language Switcher Button [ EN | 中文 ] */}
-            <div className="flex items-center bg-[#18181c] border border-zinc-800 rounded-lg p-0.5 text-xs font-bold shrink-0">
-              <button
-                onClick={() => onToggleLanguage('en')}
-                className={`px-2 py-1 rounded-md transition-all ${
-                  lang === 'en' ? 'bg-emerald-500 text-black font-extrabold shadow-sm' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => onToggleLanguage('zh')}
-                className={`px-2 py-1 rounded-md transition-all ${
-                  lang === 'zh' ? 'bg-emerald-500 text-black font-extrabold shadow-sm' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                中文
-              </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-[13px] sm:text-xl font-extrabold tracking-tight text-white font-['Plus_Jakarta_Sans'] truncate">
+                {t.appTitle}
+              </h1>
+              {/* Badge and subtitle only on wider screens, so the row never wraps on phones */}
+              <span className="hidden sm:inline-block shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                {t.programBadge}
+              </span>
             </div>
+            <p className="hidden sm:block text-xs text-zinc-400 font-medium truncate">{t.appSubTitle}</p>
+          </div>
+        </div>
 
-            {/* About Button */}
+        {/* Right Top Controls */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* Weekly Report Button */}
+          <button
+            onClick={onOpenWeeklyReport}
+            className="h-10 min-w-10 flex items-center justify-center gap-1.5 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-extrabold transition-all cursor-pointer"
+            title="View Weekly Report Card"
+            aria-label={t.weeklyReportBtn}
+          >
+            <Trophy className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="hidden sm:inline">{t.weeklyReportBtn}</span>
+          </button>
+
+          {/* Language Switcher Button [ EN | 中文 ] (ring instead of border keeps the buttons a full 40px) */}
+          <div className="flex items-center h-10 bg-[#18181c] ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs font-bold">
             <button
-              onClick={onOpenAbout}
-              className="p-2 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition-colors shrink-0 cursor-pointer"
-              title="About Marcus' Hypertrophy Hub"
+              onClick={() => onToggleLanguage('en')}
+              aria-pressed={lang === 'en'}
+              className={`h-10 min-w-10 px-2 transition-all cursor-pointer ${
+                lang === 'en' ? 'bg-emerald-500 text-black font-extrabold' : 'text-zinc-400 hover:text-white'
+              }`}
             >
-              <Info className="w-4 h-4 text-emerald-400" />
+              EN
+            </button>
+            <button
+              onClick={() => onToggleLanguage('zh')}
+              aria-pressed={lang === 'zh'}
+              className={`h-10 min-w-10 px-2 transition-all cursor-pointer ${
+                lang === 'zh' ? 'bg-emerald-500 text-black font-extrabold' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              中文
             </button>
           </div>
+
+          {/* About Button */}
+          <button
+            onClick={onOpenAbout}
+            className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition-colors cursor-pointer"
+            title="About Marcus' Hypertrophy Hub"
+            aria-label={t.aboutTitle}
+          >
+            <Info className="w-4 h-4 text-emerald-400" />
+          </button>
         </div>
       </div>
     </header>
