@@ -4,6 +4,7 @@ import { Language, uiTranslations, exerciseTranslationsZh } from '../data/transl
 import { AnatomyMap } from './AnatomyMap';
 import { displayWeight, WeightUnit } from '../lib/units';
 import { parseSetsCount } from '../utils/parseSetsCount';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ExerciseCardProps {
@@ -40,6 +41,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeMediaTab, setActiveMediaTab] = useState<'video' | 'anatomy'>('video');
   const [isLogExpanded, setIsLogExpanded] = useState(true);
+  const [isCueExpanded, setIsCueExpanded] = useState(false);
+  const [isMuscleMapOpen, setIsMuscleMapOpen] = useState(false);
+
+  // Phones (below md) get a compact card that never creates a <video>, so no video loads in the list.
+  // md and wider keep the original side-by-side layout with the autoplaying video.
+  const isWide = useMediaQuery('(min-width: 768px)');
 
   const t = uiTranslations[lang];
   const zhEx = exerciseTranslationsZh[exercise.id];
@@ -78,7 +85,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [exercise.media?.videoUrl, activeMediaTab]);
+  }, [exercise.media?.videoUrl, activeMediaTab, isWide]);
 
   const togglePlayPause = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,12 +101,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   const media = exercise.media;
 
+  const prevBestText =
+    previousBest && (previousBest.weight || previousBest.reps)
+      ? t.prevBest(displayWeight(previousBest.weight, previousBest.unit, weightUnit) || '0', weightUnit, previousBest.reps || '0')
+      : null;
+
   return (
     <div
       ref={containerRef}
       className="bg-[#121215] border border-[#27272a] rounded-2xl overflow-hidden shadow-xl hover:border-zinc-700 transition-all duration-300 group flex flex-col md:flex-row"
     >
-      {/* Media / Visualizer Area */}
+      {/* Media / Visualizer Area (md and wider only) */}
+      {isWide && (
       <div className="relative w-full md:w-[280px] lg:w-[320px] shrink-0 bg-[#09090b] flex flex-col">
         {/* Top Tab Selector for Video vs Anatomy */}
         <div className="flex items-center justify-between p-2 bg-[#0d0d10] border-b border-[#222227] z-10">
@@ -179,10 +192,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           )}
         </div>
       </div>
+      )}
 
       {/* Content Details Area */}
       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
         <div>
+          {isWide ? (
+          <>
           {/* Header & Exercise Title */}
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
@@ -207,16 +223,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 </div>
               </div>
 
-              {previousBest && (previousBest.weight || previousBest.reps) && (
+              {prevBestText && (
                 <div className="flex items-center gap-1 text-[10px] font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
                   <Award className="w-3 h-3 text-cyan-400" />
-                  <span>
-                    {t.prevBest(
-                      displayWeight(previousBest.weight, previousBest.unit, weightUnit) || '0',
-                      weightUnit,
-                      previousBest.reps || '0'
-                    )}
-                  </span>
+                  <span>{prevBestText}</span>
                 </div>
               )}
             </div>
@@ -255,6 +265,116 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               "{coachingCue}"
             </p>
           </div>
+          </>
+          ) : (
+          <>
+          {/* Compact header (phones): poster thumbnail + name, volume, primary muscles, previous best */}
+          <div className="flex gap-3">
+            {media ? (
+              <button
+                onClick={() => onOpenVideoModal(media.videoUrl, media.posterUrl, exerciseName)}
+                aria-label={`${t.formDemoTab}: ${exerciseName}`}
+                className="relative w-[72px] h-24 shrink-0 rounded-xl overflow-hidden border border-[#27272a] bg-[#09090b] cursor-pointer"
+              >
+                <img src={media.posterUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+                <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                  <span className="w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center shadow-lg">
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <div
+                aria-hidden="true"
+                className="w-[72px] h-24 shrink-0 rounded-xl border border-[#27272a] bg-[#09090b] flex items-center justify-center text-zinc-400"
+              >
+                <Video className="w-5 h-5" />
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-1.5">
+                <span className="text-xs leading-6 font-extrabold text-emerald-400 tracking-wider shrink-0">
+                  #{String(index + 1).padStart(2, '0')}
+                </span>
+                <h3 className="text-base leading-6 font-bold text-white tracking-tight font-['Plus_Jakarta_Sans'] line-clamp-2">
+                  {exerciseName}
+                </h3>
+              </div>
+
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-black text-emerald-400 font-mono bg-[#1a1a20] border border-[#2e2e35] px-2 py-0.5 rounded-lg whitespace-nowrap">
+                  {exercise.sets} {t.sets} <span className="text-zinc-500">|</span> {exercise.reps} {t.reps}
+                </span>
+                {primaryMuscles.map((muscle) => (
+                  <span
+                    key={muscle}
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                  >
+                    {muscle}
+                  </span>
+                ))}
+                {prevBestText && (
+                  <span className="flex items-center gap-1 text-xs font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
+                    <Award className="w-3 h-3 text-cyan-400" />
+                    {prevBestText}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Coaching cue: 2 lines, tap to show all */}
+          <button
+            onClick={() => setIsCueExpanded((expanded) => !expanded)}
+            aria-expanded={isCueExpanded}
+            className="mt-3 w-full min-h-10 flex items-start gap-2 text-left bg-[#0d0d10] border border-[#222227] rounded-xl px-3 py-2 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+            <span className={`flex-1 min-w-0 text-xs leading-snug text-zinc-300 ${isCueExpanded ? 'block' : 'line-clamp-2'}`}>
+              <span className="font-bold text-emerald-400">{t.coachingCueLabel}</span>
+              {' · '}
+              <span className="italic">"{coachingCue}"</span>
+            </span>
+            <ChevronDown className={`w-4 h-4 shrink-0 text-zinc-400 transition-transform ${isCueExpanded ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Muscle map + secondary muscles, collapsed by default */}
+          <button
+            onClick={() => setIsMuscleMapOpen((open) => !open)}
+            aria-expanded={isMuscleMapOpen}
+            className="mt-2 w-full min-h-10 flex items-center gap-2 px-3 rounded-xl border border-[#222227] bg-[#0d0d10] text-xs font-bold text-zinc-300 cursor-pointer"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{t.muscleMapTab}</span>
+            <ChevronDown className={`ml-auto w-4 h-4 text-zinc-400 transition-transform ${isMuscleMapOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {isMuscleMapOpen && (
+            <div className="mt-2 bg-[#09090b] border border-[#222227] rounded-xl p-3">
+              <div className="flex justify-center">
+                <AnatomyMap
+                  primaryMuscles={exercise.primaryMuscleGroupIds || []}
+                  secondaryMuscles={exercise.secondaryMuscleGroupIds || []}
+                  size="md"
+                  lang={lang}
+                />
+              </div>
+              {secondaryMuscles.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {secondaryMuscles.map((muscle) => (
+                    <span
+                      key={muscle}
+                      className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/60"
+                    >
+                      {muscle}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          </>
+          )}
         </div>
 
         {/* Client-Side Workout Tracker & Performance Logger */}
