@@ -7,12 +7,15 @@ import { ExerciseCard } from './components/ExerciseCard';
 import { VideoModal } from './components/VideoModal';
 import { AboutModal } from './components/AboutModal';
 import { ProgramNotice } from './components/ProgramNotice';
+import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { SetDetail } from './types/workout';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
-import { completedSetsItem, languageItem, previousBestsItem, setDetailsItem, weightUnitItem } from './lib/savedData';
+import { completedSetsItem, languageItem, previousBestsItem, restSoundItem, setDetailsItem, weightUnitItem } from './lib/savedData';
 import { nextPreviousBests, WorkoutLog } from './lib/bestSet';
+import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
+import { unlockRestSound } from './lib/restAlert';
 import { WeightedSet, withRepsEdit, withWeightEdit } from './lib/units';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { Trophy, Sparkles, Flame, ChevronDown } from 'lucide-react';
@@ -26,11 +29,15 @@ export const App: React.FC = () => {
   const [setDetailsState, setSetDetailsState] = usePersistentState(setDetailsItem);
   const [previousBestsState, setPreviousBestsState] = usePersistentState(previousBestsItem);
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
+  const [restSound, setRestSound] = usePersistentState(restSoundItem);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
   const [isDayDescExpanded, setIsDayDescExpanded] = useState<boolean>(false);
+  // Rest timer between sets: kept in memory only (a reload loses it); `id` gives every new rest its own bar
+  const [restTimer, setRestTimer] = useState<(RestCountdown & { id: number }) | null>(null);
+  const restTimerIdRef = useRef(0);
   // Phones (below md) get a compact Day card; md and wider keep the original one
   const isWide = useMediaQuery('(min-width: 768px)');
 
@@ -109,6 +116,26 @@ export const App: React.FC = () => {
   }, [completedSetsState, setDetailsState]);
 
   // Handler: Toggle set completion
+  // Starts the rest after a tick. Only the user's tap reaches this, so loading, other-tab sync and
+  // unticking never start it.
+  const startRestAfterTick = (exerciseId: string, setIndex: number) => {
+    // The tap that completes the whole day needs no rest: stop a running timer instead
+    const completesDay = activeDay.exercises.every((ex) => {
+      const done = new Set(completedSetsState[ex.id] || []);
+      if (ex.id === exerciseId) done.add(setIndex);
+      return done.size >= parseSetsCount(ex.sets);
+    });
+    if (completesDay) {
+      setRestTimer(null);
+      return;
+    }
+    const exercise = activeDay.exercises.find((ex) => ex.id === exerciseId);
+    // Creating/resuming the audio inside this tap lets mobile browsers play the beep later
+    if (restSound === 'on') unlockRestSound();
+    restTimerIdRef.current += 1;
+    setRestTimer({ id: restTimerIdRef.current, ...startRestCountdown(restSecondsForReps(exercise?.reps ?? ''), Date.now()) });
+  };
+
   const handleToggleSet = (exerciseId: string, setIndex: number) => {
     setCompletedSetsState((prev) => {
       const currentSets = prev[exerciseId] || [];
@@ -126,6 +153,9 @@ export const App: React.FC = () => {
         [exerciseId]: updated,
       };
     });
+
+    // Rest timer: only when this tap turns a not-done set into a done one
+    if (!(completedSetsState[exerciseId] || []).includes(setIndex)) startRestAfterTick(exerciseId, setIndex);
   };
 
   // Handlers: Update a set's weight or reps (previous best is updated by the effect above).
@@ -197,7 +227,10 @@ export const App: React.FC = () => {
   const isCurrentDayComplete = activeDayStats.total > 0 && activeDayStats.completed === activeDayStats.total;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex flex-col font-sans">
+    <div
+      className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex flex-col font-sans"
+      style={restTimer ? { paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' } : undefined}
+    >
       {/* Header Banner */}
       <HeaderBanner
         lang={lang}
@@ -390,6 +423,22 @@ export const App: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Rest timer bar: z-40, so the dialogs below (z-50) always cover it */}
+      {restTimer && (
+        <RestTimerBar
+          key={restTimer.id}
+          lang={lang}
+          countdown={restTimer}
+          soundOn={restSound === 'on'}
+          onToggleSound={() => {
+            if (restSound === 'off') unlockRestSound();
+            setRestSound(restSound === 'on' ? 'off' : 'on');
+          }}
+          onAddTime={() => setRestTimer((timer) => timer && { ...timer, ...addRestTime(timer, Date.now(), 15) })}
+          onClose={() => setRestTimer(null)}
+        />
+      )}
 
       {/* Fullscreen Video Modal */}
       <VideoModal
