@@ -104,6 +104,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   // Number boxes in the set rows: 48px tall, 18px digits, desktop spinner arrows hidden
   const setInputClass =
     'w-full h-12 bg-[#18181c] border border-zinc-700 rounded-lg px-1 pt-0.5 pb-3.5 text-[18px] leading-none font-semibold tabular-nums text-white text-center placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+  // Keyboard helpers for the set rows: typing replaces the value; Enter goes weight -> reps -> keyboard closed
+  const selectAllOnFocus = (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select();
+  const moveToRepsOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.currentTarget.closest('[data-set-row]')?.querySelector<HTMLInputElement>('input[data-field="reps"]')?.focus();
+  };
+  const closeKeyboardOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.currentTarget.blur();
+  };
   const setInputLabelClass =
     'pointer-events-none absolute inset-x-0 bottom-1 text-center text-xs leading-none font-bold text-zinc-400';
 
@@ -454,6 +466,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       <div className="relative flex-1 min-w-0 max-w-28">
                         <input
                           type="number"
+                          inputMode="decimal"
+                          step="any"
+                          enterKeyHint="next"
+                          data-field="weight"
+                          onFocus={selectAllOnFocus}
+                          onKeyDown={moveToRepsOnEnter}
                           placeholder={t.weightPlaceholder}
                           aria-label={t.weightInputLabel(setNumber, weightUnit)}
                           value={displayWeight(detail.weight || '', detail.unit, weightUnit)}
@@ -468,6 +486,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       <div className="relative w-[3.75rem] shrink-0">
                         <input
                           type="number"
+                          inputMode="numeric"
+                          step="any"
+                          enterKeyHint="done"
+                          data-field="reps"
+                          onFocus={selectAllOnFocus}
+                          onKeyDown={closeKeyboardOnEnter}
                           placeholder={t.repsPlaceholder}
                           aria-label={t.repsInputLabel(setNumber)}
                           value={detail.reps || ''}
