@@ -4,6 +4,7 @@ import {
   completedSetsItem,
   languageItem,
   previousBestsItem,
+  restSoundItem,
   saveDefaultWeightUnitIfMissing,
   setDetailsItem,
   weightUnitItem,
@@ -317,5 +318,19 @@ describe('weight unit setting (aesthetic_recomp_unit_v1)', () => {
     saveDefaultWeightUnitIfMissing(storage);
     expect(storage.getItem(weightUnitItem.key)).toBe('lbs');
     expect(storage.setItemCalls).toBe(0);
+  });
+});
+
+describe('rest timer sound setting (aesthetic_recomp_rest_sound_v1)', () => {
+  it('reads "on" / "off" as plain text, defaults to on, and treats anything else as on', () => {
+    expect(safeRead(restSoundItem, new MemoryStorage())).toBe('on');
+    expect(safeRead(restSoundItem, new MemoryStorage({ [restSoundItem.key]: 'off' }))).toBe('off');
+    expect(safeRead(restSoundItem, new MemoryStorage({ [restSoundItem.key]: 'on' }))).toBe('on');
+    expect(safeRead(restSoundItem, new MemoryStorage({ [restSoundItem.key]: 'loud' }))).toBe('on');
+  });
+
+  it('saves plain text', () => {
+    expect(restSoundItem.serialize('off')).toBe('off');
+    expect(restSoundItem.serialize('on')).toBe('on');
   });
 });

@@ -106,3 +106,12 @@ export const saveDefaultWeightUnitIfMissing = (storage: StorageLike | null = get
   }
   safeWrite(weightUnitItem.key, weightUnitItem.serialize(pickDefaultUnit(safeRead(setDetailsItem, storage))), storage);
 };
+
+// Rest timer sound on/off. Saved as plain text ("on" / "off"), default "on".
+export type RestSound = 'on' | 'off';
+export const restSoundItem: StoredItem<RestSound> = {
+  key: 'aesthetic_recomp_rest_sound_v1',
+  fallback: 'on',
+  parse: (raw) => ({ value: raw === 'off' ? 'off' : 'on', dropped: raw !== 'on' && raw !== 'off' }),
+  serialize: (sound) => sound,
+};
