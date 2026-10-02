@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getEnrichedWorkoutProgram, workoutProgram } from './data/workoutProgram';
-import { Language, uiTranslations, dayTranslationsZh } from './data/translations';
+import { uiTranslations, dayTranslationsZh } from './data/translations';
 import { HeaderBanner } from './components/HeaderBanner';
 import { DayNavigation } from './components/DayNavigation';
 import { ExerciseCard } from './components/ExerciseCard';
@@ -9,58 +9,22 @@ import { AboutModal } from './components/AboutModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { SetDetail } from './types/workout';
 import { parseSetsCount } from './utils/parseSetsCount';
+import { usePersistentState } from './hooks/usePersistentState';
+import { completedSetsItem, languageItem, previousBestsItem, setDetailsItem } from './lib/savedData';
 import { Trophy, Sparkles, Flame } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
 
-const STORAGE_KEY_LANG = 'language_preference';
-const STORAGE_KEY_SETS = 'aesthetic_recomp_completed_sets_v2';
-const STORAGE_KEY_DETAILS = 'aesthetic_recomp_set_details_v2';
-const STORAGE_KEY_BESTS = 'aesthetic_recomp_previous_bests_v2';
-
 export const App: React.FC = () => {
-  const [lang, setLang] = useState<Language>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_LANG);
-      return saved === 'zh' ? 'zh' : 'en';
-    } catch (e) {
-      return 'en';
-    }
-  });
+  // Saved to localStorage (see src/lib/savedData.ts for keys and formats)
+  const [lang, setLang] = usePersistentState(languageItem);
+  const [completedSetsState, setCompletedSetsState] = usePersistentState(completedSetsItem);
+  const [setDetailsState, setSetDetailsState] = usePersistentState(setDetailsItem);
+  const [previousBestsState, setPreviousBestsState] = usePersistentState(previousBestsItem);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
-
-  // Completed sets per exercise
-  const [completedSetsState, setCompletedSetsState] = useState<Record<string, number[]>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_SETS);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
-
-  // Set details per exercise
-  const [setDetailsState, setSetDetailsState] = useState<Record<string, Record<number, SetDetail>>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_DETAILS);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
-
-  // Previous Bests
-  const [previousBestsState, setPreviousBestsState] = useState<Record<string, { weight: string; reps: string; unit: 'kg' | 'lbs' }>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_BESTS);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -73,33 +37,6 @@ export const App: React.FC = () => {
     posterUrl: '',
     title: '',
   });
-
-  // Save Language Preference
-  const handleToggleLanguage = (newLang: Language) => {
-    setLang(newLang);
-    try {
-      localStorage.setItem(STORAGE_KEY_LANG, newLang);
-    } catch (e) {}
-  };
-
-  // LocalStorage Persistence Sync
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_SETS, JSON.stringify(completedSetsState));
-    } catch (e) {}
-  }, [completedSetsState]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DETAILS, JSON.stringify(setDetailsState));
-    } catch (e) {}
-  }, [setDetailsState]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_BESTS, JSON.stringify(previousBestsState));
-    } catch (e) {}
-  }, [previousBestsState]);
 
   const activeDay = enrichedDays.find((d) => d.id === activeDayId) || enrichedDays[0];
   const t = uiTranslations[lang];
@@ -260,7 +197,7 @@ export const App: React.FC = () => {
       {/* Header Banner */}
       <HeaderBanner
         lang={lang}
-        onToggleLanguage={handleToggleLanguage}
+        onToggleLanguage={setLang}
         onOpenAbout={() => setIsAboutOpen(true)}
         onOpenWeeklyReport={() => setIsWeeklyReportOpen(true)}
         completedSetsCount={totalCompletedSets}
