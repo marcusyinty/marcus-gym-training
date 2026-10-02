@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { backupKeyFor, createDebouncedWriter, onPageHide, safeRead, safeWrite, StorageLike } from './storage';
-import { completedSetsItem, languageItem, previousBestsItem, setDetailsItem } from './savedData';
+import {
+  completedSetsItem,
+  languageItem,
+  previousBestsItem,
+  saveDefaultWeightUnitIfMissing,
+  setDetailsItem,
+  weightUnitItem,
+} from './savedData';
 
 // In-memory stand-in for localStorage
 class MemoryStorage implements StorageLike {
@@ -274,5 +281,41 @@ describe('requestPersistentStorage', () => {
     expect(await loadFresh()).not.toThrow();
     await new Promise((r) => setTimeout(r, 0));
     expect(warn).toHaveBeenCalled();
+  });
+});
+
+describe('weight unit setting (aesthetic_recomp_unit_v1)', () => {
+  it('reads "kg" / "lbs" as plain text, and treats anything else as kg', () => {
+    expect(safeRead(weightUnitItem, new MemoryStorage({ [weightUnitItem.key]: 'lbs' }))).toBe('lbs');
+    expect(safeRead(weightUnitItem, new MemoryStorage({ [weightUnitItem.key]: 'kg' }))).toBe('kg');
+    expect(safeRead(weightUnitItem, new MemoryStorage({ [weightUnitItem.key]: 'stone' }))).toBe('kg');
+    expect(safeRead(weightUnitItem, new MemoryStorage())).toBe('kg');
+  });
+
+  it('on first run, saves the unit most sets were typed in, writing only the new key', () => {
+    const storage = new MemoryStorage(OLD_FORMAT); // 3 sets with a weight in kg, 1 in lbs
+    saveDefaultWeightUnitIfMissing(storage);
+    expect(storage.getItem(weightUnitItem.key)).toBe('kg');
+    expect(storage.setItemCalls).toBe(1);
+    for (const [key, raw] of Object.entries(OLD_FORMAT)) expect(storage.getItem(key)).toBe(raw);
+  });
+
+  it('picks lbs when most sets with a weight are in lbs, and kg when there is no data', () => {
+    const lbsUser = new MemoryStorage({
+      [setDetailsItem.key]: '{"a":{"0":{"setNumber":1,"weight":"135","reps":"8","unit":"lbs"},"1":{"setNumber":2,"weight":"","reps":"8","unit":"kg"}}}',
+    });
+    saveDefaultWeightUnitIfMissing(lbsUser);
+    expect(lbsUser.getItem(weightUnitItem.key)).toBe('lbs');
+
+    const newUser = new MemoryStorage();
+    saveDefaultWeightUnitIfMissing(newUser);
+    expect(newUser.getItem(weightUnitItem.key)).toBe('kg');
+  });
+
+  it('never overwrites a unit that was already chosen', () => {
+    const storage = new MemoryStorage({ ...OLD_FORMAT, [weightUnitItem.key]: 'lbs' });
+    saveDefaultWeightUnitIfMissing(storage);
+    expect(storage.getItem(weightUnitItem.key)).toBe('lbs');
+    expect(storage.setItemCalls).toBe(0);
   });
 });

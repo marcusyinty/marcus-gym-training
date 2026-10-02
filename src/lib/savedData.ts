@@ -1,8 +1,9 @@
-// The 4 things the app saves, with their original localStorage keys and formats (do not rename keys).
+// The things the app saves, with their localStorage keys and formats (do not rename keys).
 // Each `parse` checks the shape and drops bad entries instead of crashing.
 import { Language } from '../data/translations';
 import { SetDetail } from '../types/workout';
-import { StoredItem } from './storage';
+import { getDefaultStorage, safeRead, safeWrite, StorageLike, StoredItem } from './storage';
+import { pickDefaultUnit, WeightUnit } from './units';
 
 export type CompletedSets = Record<string, number[]>;
 export type SetDetailsByExercise = Record<string, Record<number, SetDetail>>;
@@ -83,4 +84,25 @@ export const previousBestsItem: StoredItem<PreviousBests> = {
   fallback: {},
   parse: (raw) => parseRecord(raw, (entry) => (isLoggedSet(entry) ? { value: entry, dropped: false } : null)),
   serialize: (value) => JSON.stringify(value),
+};
+
+// One weight unit for the whole app. Saved as plain text ("kg" / "lbs"), like the language key.
+export const weightUnitItem: StoredItem<WeightUnit> = {
+  key: 'aesthetic_recomp_unit_v1',
+  fallback: 'kg',
+  parse: (raw) => ({ value: raw === 'lbs' ? 'lbs' : 'kg', dropped: raw !== 'kg' && raw !== 'lbs' }),
+  serialize: (unit) => unit,
+};
+
+// First run with the unit setting: start with the unit most saved sets were typed in, and save that
+// choice once. Only the new unit key is ever written here; the set details are just read.
+export const saveDefaultWeightUnitIfMissing = (storage: StorageLike | null = getDefaultStorage()) => {
+  if (!storage) return;
+  try {
+    const existing = storage.getItem(weightUnitItem.key);
+    if (existing !== null && existing !== '') return;
+  } catch (e) {
+    return;
+  }
+  safeWrite(weightUnitItem.key, weightUnitItem.serialize(pickDefaultUnit(safeRead(setDetailsItem, storage))), storage);
 };
