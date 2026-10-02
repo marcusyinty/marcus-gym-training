@@ -11,6 +11,7 @@ import { SetDetail } from './types/workout';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
 import { completedSetsItem, languageItem, previousBestsItem, setDetailsItem } from './lib/savedData';
+import { nextPreviousBests, WorkoutLog } from './lib/bestSet';
 import { Trophy, Sparkles, Flame } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
@@ -86,6 +87,20 @@ export const App: React.FC = () => {
     wasWeekCompleteRef.current = isWeekComplete;
   }, [isWeekComplete]);
 
+  // Update "previous best" from sets that just became done or were edited while done (see src/lib/bestSet.ts).
+  // Compares the log before and after each change, so it always uses the latest ticks and weights, whether
+  // the change came from this tab or another one. The ref starts from the loaded data, so a page load
+  // never runs it and existing bests stay as they are.
+  const lastLogRef = useRef<WorkoutLog>({ completedSets: completedSetsState, setDetails: setDetailsState });
+
+  useEffect(() => {
+    const before = lastLogRef.current;
+    if (before.completedSets === completedSetsState && before.setDetails === setDetailsState) return;
+    const after = { completedSets: completedSetsState, setDetails: setDetailsState };
+    lastLogRef.current = after;
+    setPreviousBestsState((bests) => nextPreviousBests(bests, before, after));
+  }, [completedSetsState, setDetailsState]);
+
   // Handler: Toggle set completion
   const handleToggleSet = (exerciseId: string, setIndex: number) => {
     setCompletedSetsState((prev) => {
@@ -106,7 +121,7 @@ export const App: React.FC = () => {
     });
   };
 
-  // Handler: Update set weight/reps details & auto-update previous best
+  // Handler: Update set weight/reps details (previous best is updated by the effect above)
   const handleUpdateSetDetail = (
     exerciseId: string,
     setIndex: number,
@@ -132,22 +147,6 @@ export const App: React.FC = () => {
         },
       };
     });
-
-    if (weight && reps) {
-      setPreviousBestsState((prev) => {
-        const existing = prev[exerciseId];
-        const newWeightNum = parseFloat(weight) || 0;
-        const existingWeightNum = existing ? parseFloat(existing.weight) || 0 : 0;
-
-        if (!existing || newWeightNum >= existingWeightNum) {
-          return {
-            ...prev,
-            [exerciseId]: { weight, reps, unit },
-          };
-        }
-        return prev;
-      });
-    }
   };
 
   // Reset active day's progress
