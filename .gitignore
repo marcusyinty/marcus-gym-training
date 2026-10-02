@@ -10,3 +10,6 @@ videos/
 
 # Keep media JSON registry
 !src/data/exerciseVideos.json
+
+# Screenshots for visual review (never committed)
+review-shots/

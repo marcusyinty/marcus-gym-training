@@ -6,6 +6,7 @@ import { DayNavigation } from './components/DayNavigation';
 import { ExerciseCard } from './components/ExerciseCard';
 import { VideoModal } from './components/VideoModal';
 import { AboutModal } from './components/AboutModal';
+import { ProgramNotice } from './components/ProgramNotice';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { SetDetail } from './types/workout';
 import { parseSetsCount } from './utils/parseSetsCount';
@@ -202,8 +203,6 @@ export const App: React.FC = () => {
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
         activeDayTitle={activeDayTitle}
-        onResetActiveDay={handleResetActiveDay}
-        onResetAll={handleResetAll}
       />
 
       {/* Day Navigation Tabs */}
@@ -217,6 +216,9 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl mx-auto px-4 py-6 w-full">
+        {/* Beginner notice + Reset (scrolls away with the page) */}
+        <ProgramNotice lang={lang} onResetActiveDay={handleResetActiveDay} onResetAll={handleResetAll} />
+
         {/* Active Day Header */}
         <div className="mb-6 bg-[#121215] border border-[#27272a] rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
