@@ -9,27 +9,25 @@ import { AboutModal } from './components/AboutModal';
 import { ProgramNotice } from './components/ProgramNotice';
 import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
-import { SetDetail } from './types/workout';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
-import { completedSetsItem, languageItem, previousBestsItem, restSoundItem, setDetailsItem, weightUnitItem } from './lib/savedData';
-import { nextPreviousBests, WorkoutLog } from './lib/bestSet';
+import { useAppData } from './hooks/useAppData';
+import { languageItem, restSoundItem, weightUnitItem } from './lib/savedData';
 import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
 import { unlockRestSound } from './lib/restAlert';
-import { WeightedSet, withRepsEdit, withWeightEdit } from './lib/units';
+import { completedIndexes, cycleProgress, previousBest, setDetails } from './lib/store/selectors';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { Trophy, Sparkles, Flame, ChevronDown } from 'lucide-react';
+import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
 
 export const App: React.FC = () => {
-  // Saved to localStorage (see src/lib/savedData.ts for keys and formats)
+  // Settings, each saved under its own key (see src/lib/savedData.ts)
   const [lang, setLang] = usePersistentState(languageItem);
-  const [completedSetsState, setCompletedSetsState] = usePersistentState(completedSetsItem);
-  const [setDetailsState, setSetDetailsState] = usePersistentState(setDetailsItem);
-  const [previousBestsState, setPreviousBestsState] = usePersistentState(previousBestsItem);
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
+  // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
+  const { data: appData, source: dataSource, dispatch } = useAppData();
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -60,60 +58,28 @@ export const App: React.FC = () => {
   const activeDayTitle = lang === 'zh' && zhDayTrans ? zhDayTrans.title : activeDay.title;
   const activeDayDesc = lang === 'zh' && zhDayTrans ? zhDayTrans.description : activeDay.description;
 
-  // Calculate session & day statistics
-  let totalProgramSets = 0;
-  let totalCompletedSets = 0;
-  let completedDaysCount = 0;
+  // Session & day statistics (counted exactly as before, see cycleProgress)
+  const progress = cycleProgress(appData, enrichedDays);
+  const dayStats = progress.perDay;
+  const totalProgramSets = progress.totalSets;
+  const totalCompletedSets = progress.completedSets;
+  const completedDaysCount = progress.completedDays;
 
-  const dayStats: Record<string, { completed: number; total: number }> = {};
-
-  enrichedDays.forEach((day) => {
-    let dayTotal = 0;
-    let dayCompleted = 0;
-
-    day.exercises.forEach((ex) => {
-      const totalSets = parseSetsCount(ex.sets);
-      const done = (completedSetsState[ex.id] || []).length;
-
-      dayTotal += totalSets;
-      dayCompleted += Math.min(done, totalSets);
-    });
-
-    dayStats[day.id] = { completed: dayCompleted, total: dayTotal };
-    if (dayTotal > 0 && dayCompleted === dayTotal) {
-      completedDaysCount += 1;
-    }
-    totalProgramSets += dayTotal;
-    totalCompletedSets += dayCompleted;
-  });
-
-  // Auto-open weekly report at most once per session, only when the week goes from incomplete to complete.
-  // Refs start from the data loaded on first render, so a page load never counts as a change.
+  // Auto-open the weekly report once per week: only when the week goes from incomplete to complete during
+  // this session and its report was not shown before (saved in reportShownCycleIds). The ref starts from
+  // the loaded data, so a page load never counts as a change.
   const isWeekComplete = totalProgramSets > 0 && totalCompletedSets === totalProgramSets;
   const wasWeekCompleteRef = useRef(isWeekComplete);
-  const hasAutoOpenedReportRef = useRef(false);
+  const currentCycleId = appData.currentCycle.id;
+  const isReportAlreadyShown = appData.reportShownCycleIds.includes(currentCycleId);
 
   useEffect(() => {
-    if (isWeekComplete && !wasWeekCompleteRef.current && !hasAutoOpenedReportRef.current) {
-      hasAutoOpenedReportRef.current = true;
+    if (isWeekComplete && !wasWeekCompleteRef.current && !isReportAlreadyShown) {
       setIsWeeklyReportOpen(true);
+      dispatch({ type: 'markReportShown', cycleId: currentCycleId });
     }
     wasWeekCompleteRef.current = isWeekComplete;
   }, [isWeekComplete]);
-
-  // Update "previous best" from sets that just became done or were edited while done (see src/lib/bestSet.ts).
-  // Compares the log before and after each change, so it always uses the latest ticks and weights, whether
-  // the change came from this tab or another one. The ref starts from the loaded data, so a page load
-  // never runs it and existing bests stay as they are.
-  const lastLogRef = useRef<WorkoutLog>({ completedSets: completedSetsState, setDetails: setDetailsState });
-
-  useEffect(() => {
-    const before = lastLogRef.current;
-    if (before.completedSets === completedSetsState && before.setDetails === setDetailsState) return;
-    const after = { completedSets: completedSetsState, setDetails: setDetailsState };
-    lastLogRef.current = after;
-    setPreviousBestsState((bests) => nextPreviousBests(bests, before, after));
-  }, [completedSetsState, setDetailsState]);
 
   // Handler: Toggle set completion
   // Starts the rest after a tick. Only the user's tap reaches this, so loading, other-tab sync and
@@ -121,7 +87,7 @@ export const App: React.FC = () => {
   const startRestAfterTick = (exerciseId: string, setIndex: number) => {
     // The tap that completes the whole day needs no rest: stop a running timer instead
     const completesDay = activeDay.exercises.every((ex) => {
-      const done = new Set(completedSetsState[ex.id] || []);
+      const done = new Set(completedIndexes(appData, ex.id));
       if (ex.id === exerciseId) done.add(setIndex);
       return done.size >= parseSetsCount(ex.sets);
     });
@@ -136,79 +102,34 @@ export const App: React.FC = () => {
     setRestTimer({ id: restTimerIdRef.current, ...startRestCountdown(restSecondsForReps(exercise?.reps ?? ''), Date.now()) });
   };
 
+  // Handlers: each change goes through the store's reducer (src/lib/store/reducer.ts), which also
+  // updates "previous best". A new weight is saved in the current unit; editing only reps keeps the
+  // set's stored weight and unit.
   const handleToggleSet = (exerciseId: string, setIndex: number) => {
-    setCompletedSetsState((prev) => {
-      const currentSets = prev[exerciseId] || [];
-      const isAlreadyCompleted = currentSets.includes(setIndex);
-
-      let updated: number[];
-      if (isAlreadyCompleted) {
-        updated = currentSets.filter((i) => i !== setIndex);
-      } else {
-        updated = [...currentSets, setIndex].sort((a, b) => a - b);
-      }
-
-      return {
-        ...prev,
-        [exerciseId]: updated,
-      };
-    });
-
+    const wasDone = completedIndexes(appData, exerciseId).includes(setIndex);
+    dispatch({ type: 'toggleSet', slotId: exerciseId, setIndex, unit: weightUnit });
     // Rest timer: only when this tap turns a not-done set into a done one
-    if (!(completedSetsState[exerciseId] || []).includes(setIndex)) startRestAfterTick(exerciseId, setIndex);
-  };
-
-  // Handlers: Update a set's weight or reps (previous best is updated by the effect above).
-  // A new weight is saved in the current unit; editing only reps keeps the set's stored weight and unit.
-  const updateSetDetail = (exerciseId: string, setIndex: number, edit: (set: SetDetail | undefined) => WeightedSet) => {
-    setSetDetailsState((prev) => {
-      const exDetails = prev[exerciseId] || {};
-      const updatedDetail: SetDetail = {
-        setNumber: setIndex + 1,
-        ...edit(exDetails[setIndex]),
-        timestamp: new Date().toISOString(),
-      };
-
-      return {
-        ...prev,
-        [exerciseId]: {
-          ...exDetails,
-          [setIndex]: updatedDetail,
-        },
-      };
-    });
+    if (!wasDone) startRestAfterTick(exerciseId, setIndex);
   };
 
   const handleUpdateWeight = (exerciseId: string, setIndex: number, weight: string) =>
-    updateSetDetail(exerciseId, setIndex, (set) => withWeightEdit(set, weight, weightUnit));
+    dispatch({ type: 'editWeight', slotId: exerciseId, setIndex, weight, unit: weightUnit });
 
   const handleUpdateReps = (exerciseId: string, setIndex: number, reps: string) =>
-    updateSetDetail(exerciseId, setIndex, (set) => withRepsEdit(set, reps, weightUnit));
+    dispatch({ type: 'editReps', slotId: exerciseId, setIndex, reps, unit: weightUnit });
 
-  // Reset active day's progress
-  const handleResetActiveDay = () => {
-    setCompletedSetsState((prev) => {
-      const updated = { ...prev };
-      activeDay.exercises.forEach((ex) => {
-        delete updated[ex.id];
-      });
-      return updated;
-    });
+  // Reset the active day / all 5 days: current week only, bests stay (as before)
+  const handleResetActiveDay = () => dispatch({ type: 'resetDay', slotIds: activeDay.exercises.map((ex) => ex.id) });
 
-    setSetDetailsState((prev) => {
-      const updated = { ...prev };
-      activeDay.exercises.forEach((ex) => {
-        delete updated[ex.id];
-      });
-      return updated;
-    });
-  };
+  const handleResetAll = () => dispatch({ type: 'resetAll' });
 
-  // Full reset (All 5 days)
-  const handleResetAll = () => {
-    setCompletedSetsState({});
-    setSetDetailsState({});
-  };
+  // The weekly report's inputs, in the same shapes as before
+  const reportSetDetails = Object.fromEntries(
+    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, setDetails(appData, ex.id)]))
+  );
+  const reportCompletedSets = Object.fromEntries(
+    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, completedIndexes(appData, ex.id)]))
+  );
 
   const handleOpenVideoModal = (videoUrl: string, posterUrl: string, title: string) => {
     setModalState({
@@ -253,6 +174,17 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl mx-auto px-4 pt-3 pb-6 md:pt-6 w-full">
+        {/* Saved workouts could not be read: the app runs in memory and saves nothing this session */}
+        {dataSource === 'error' && (
+          <div
+            role="status"
+            className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-snug text-amber-200"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <span>{t.storageErrorBanner}</span>
+          </div>
+        )}
+
         {/* Beginner notice + Reset (scrolls away with the page) */}
         <ProgramNotice lang={lang} onResetActiveDay={handleResetActiveDay} onResetAll={handleResetAll} />
 
@@ -374,9 +306,9 @@ export const App: React.FC = () => {
               exercise={exercise}
               index={idx}
               lang={lang}
-              completedSetIndexes={completedSetsState[exercise.id] || []}
-              setDetails={setDetailsState[exercise.id] || {}}
-              previousBest={previousBestsState[exercise.id]}
+              completedSetIndexes={completedIndexes(appData, exercise.id)}
+              setDetails={setDetails(appData, exercise.id)}
+              previousBest={previousBest(appData, exercise.id)}
               weightUnit={weightUnit}
               onChangeWeightUnit={setWeightUnit}
               onToggleSet={handleToggleSet}
@@ -461,8 +393,8 @@ export const App: React.FC = () => {
         isOpen={isWeeklyReportOpen}
         lang={lang}
         days={enrichedDays}
-        setDetailsState={setDetailsState}
-        completedSets={completedSetsState}
+        setDetailsState={reportSetDetails}
+        completedSets={reportCompletedSets}
         weightUnit={weightUnit}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
