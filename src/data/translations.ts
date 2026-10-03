@@ -42,6 +42,7 @@ export interface UiTranslations {
   restSound: string;
   soundOn: string;
   soundOff: string;
+  storageErrorBanner: string;
   dayCompleteTitle: (dayNum: number) => string;
   dayCompleteText: (dayTitle: string) => string;
   footerTitle: string;
@@ -117,6 +118,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     restSound: 'Rest timer sound',
     soundOn: 'Sound on',
     soundOff: 'Sound off',
+    storageErrorBanner:
+      "We couldn't read your saved workouts, so nothing will be saved this session. Your data is not deleted. Please reload.",
     dayCompleteTitle: (dayNum) => `Day ${dayNum} Complete! 🎉`,
     dayCompleteText: (dayTitle) =>
       `Outstanding work on ${dayTitle}. Fuel up with protein and rest up for your next training session.`,
@@ -192,6 +195,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     restSound: '休息提示音',
     soundOn: '声音开',
     soundOff: '声音关',
+    storageErrorBanner: '无法读取已保存的训练记录，本次使用期间不会保存任何内容。您的数据没有被删除，请刷新页面。',
     dayCompleteTitle: (dayNum) => `第 ${dayNum} 天训练打卡完成！🎉`,
     dayCompleteText: (dayTitle) => `【${dayTitle}】训练顺利完成！及时补充蛋白质与碳水，保持充足休息。`,
     footerTitle: 'Marcus 5天美学形体增肌训练系统',
