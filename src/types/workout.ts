@@ -35,7 +35,9 @@ export interface ExerciseMedia {
 }
 
 export interface Exercise {
-  id: string;
+  id: string; // slot id: unique per day (translations depend on it)
+  // Shared id when the same exercise appears on more than one day; use getExerciseId() to read it
+  exerciseId?: string;
   name: string;
   sets: string;
   reps: string;
@@ -69,7 +71,9 @@ export interface SetDetail {
   weight: string;
   reps: string;
   unit: 'kg' | 'lbs';
-  completed: boolean;
+  // Old field, no longer written and always ignored: whether a set is done comes only from the
+  // completed sets (ticks). Kept optional so data saved by earlier versions still loads unchanged.
+  completed?: boolean;
   timestamp?: string;
 }
 

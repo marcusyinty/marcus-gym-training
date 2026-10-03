@@ -1,65 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getEnrichedWorkoutProgram, workoutProgram } from './data/workoutProgram';
-import { Language, uiTranslations, dayTranslationsZh } from './data/translations';
+import { uiTranslations, dayTranslationsZh } from './data/translations';
 import { HeaderBanner } from './components/HeaderBanner';
 import { DayNavigation } from './components/DayNavigation';
 import { ExerciseCard } from './components/ExerciseCard';
 import { VideoModal } from './components/VideoModal';
 import { AboutModal } from './components/AboutModal';
+import { ProgramNotice } from './components/ProgramNotice';
+import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
-import { SetDetail } from './types/workout';
-import { Trophy, Sparkles, Flame } from 'lucide-react';
+import { parseSetsCount } from './utils/parseSetsCount';
+import { usePersistentState } from './hooks/usePersistentState';
+import { useAppData } from './hooks/useAppData';
+import { languageItem, restSoundItem, weightUnitItem } from './lib/savedData';
+import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
+import { unlockRestSound } from './lib/restAlert';
+import { completedIndexes, cycleProgress, previousBest, setDetails } from './lib/store/selectors';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
 
-const STORAGE_KEY_LANG = 'language_preference';
-const STORAGE_KEY_SETS = 'aesthetic_recomp_completed_sets_v2';
-const STORAGE_KEY_DETAILS = 'aesthetic_recomp_set_details_v2';
-const STORAGE_KEY_BESTS = 'aesthetic_recomp_previous_bests_v2';
-
 export const App: React.FC = () => {
-  const [lang, setLang] = useState<Language>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_LANG);
-      return saved === 'zh' ? 'zh' : 'en';
-    } catch (e) {
-      return 'en';
-    }
-  });
+  // Settings, each saved under its own key (see src/lib/savedData.ts)
+  const [lang, setLang] = usePersistentState(languageItem);
+  const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
+  const [restSound, setRestSound] = usePersistentState(restSoundItem);
+  // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
+  const { data: appData, source: dataSource, dispatch } = useAppData();
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
-
-  // Completed sets per exercise
-  const [completedSetsState, setCompletedSetsState] = useState<Record<string, number[]>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_SETS);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
-
-  // Set details per exercise
-  const [setDetailsState, setSetDetailsState] = useState<Record<string, Record<number, SetDetail>>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_DETAILS);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
-
-  // Previous Bests
-  const [previousBestsState, setPreviousBestsState] = useState<Record<string, { weight: string; reps: string; unit: 'kg' | 'lbs' }>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_BESTS);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
+  const [isDayDescExpanded, setIsDayDescExpanded] = useState<boolean>(false);
+  // Rest timer between sets: kept in memory only (a reload loses it); `id` gives every new rest its own bar
+  const [restTimer, setRestTimer] = useState<(RestCountdown & { id: number }) | null>(null);
+  const restTimerIdRef = useRef(0);
+  // Phones (below md) get a compact Day card; md and wider keep the original one
+  const isWide = useMediaQuery('(min-width: 768px)');
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -73,33 +51,6 @@ export const App: React.FC = () => {
     title: '',
   });
 
-  // Save Language Preference
-  const handleToggleLanguage = (newLang: Language) => {
-    setLang(newLang);
-    try {
-      localStorage.setItem(STORAGE_KEY_LANG, newLang);
-    } catch (e) {}
-  };
-
-  // LocalStorage Persistence Sync
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_SETS, JSON.stringify(completedSetsState));
-    } catch (e) {}
-  }, [completedSetsState]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DETAILS, JSON.stringify(setDetailsState));
-    } catch (e) {}
-  }, [setDetailsState]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_BESTS, JSON.stringify(previousBestsState));
-    } catch (e) {}
-  }, [previousBestsState]);
-
   const activeDay = enrichedDays.find((d) => d.id === activeDayId) || enrichedDays[0];
   const t = uiTranslations[lang];
 
@@ -107,130 +58,78 @@ export const App: React.FC = () => {
   const activeDayTitle = lang === 'zh' && zhDayTrans ? zhDayTrans.title : activeDay.title;
   const activeDayDesc = lang === 'zh' && zhDayTrans ? zhDayTrans.description : activeDay.description;
 
-  // Calculate session & day statistics
-  let totalProgramSets = 0;
-  let totalCompletedSets = 0;
-  let completedDaysCount = 0;
+  // Session & day statistics (counted exactly as before, see cycleProgress)
+  const progress = cycleProgress(appData, enrichedDays);
+  const dayStats = progress.perDay;
+  const totalProgramSets = progress.totalSets;
+  const totalCompletedSets = progress.completedSets;
+  const completedDaysCount = progress.completedDays;
 
-  const dayStats: Record<string, { completed: number; total: number }> = {};
+  // Auto-open the weekly report once per week: only when the week goes from incomplete to complete during
+  // this session and its report was not shown before (saved in reportShownCycleIds). The ref starts from
+  // the loaded data, so a page load never counts as a change.
+  const isWeekComplete = totalProgramSets > 0 && totalCompletedSets === totalProgramSets;
+  const wasWeekCompleteRef = useRef(isWeekComplete);
+  const currentCycleId = appData.currentCycle.id;
+  const isReportAlreadyShown = appData.reportShownCycleIds.includes(currentCycleId);
 
-  enrichedDays.forEach((day) => {
-    let dayTotal = 0;
-    let dayCompleted = 0;
-
-    day.exercises.forEach((ex) => {
-      const parseSets = (s: string) => (s.includes('–') ? parseInt(s.split('–')[1], 10) || 3 : parseInt(s, 10) || 3);
-      const totalSets = parseSets(ex.sets);
-      const done = (completedSetsState[ex.id] || []).length;
-
-      dayTotal += totalSets;
-      dayCompleted += Math.min(done, totalSets);
-    });
-
-    dayStats[day.id] = { completed: dayCompleted, total: dayTotal };
-    if (dayTotal > 0 && dayCompleted === dayTotal) {
-      completedDaysCount += 1;
-    }
-    totalProgramSets += dayTotal;
-    totalCompletedSets += dayCompleted;
-  });
-
-  // Auto-trigger weekly report modal when 100% completion is reached
   useEffect(() => {
-    if (totalProgramSets > 0 && totalCompletedSets === totalProgramSets) {
+    if (isWeekComplete && !wasWeekCompleteRef.current && !isReportAlreadyShown) {
       setIsWeeklyReportOpen(true);
+      dispatch({ type: 'markReportShown', cycleId: currentCycleId });
     }
-  }, [totalCompletedSets, totalProgramSets]);
+    wasWeekCompleteRef.current = isWeekComplete;
+  }, [isWeekComplete]);
 
   // Handler: Toggle set completion
-  const handleToggleSet = (exerciseId: string, setIndex: number) => {
-    setCompletedSetsState((prev) => {
-      const currentSets = prev[exerciseId] || [];
-      const isAlreadyCompleted = currentSets.includes(setIndex);
-
-      let updated: number[];
-      if (isAlreadyCompleted) {
-        updated = currentSets.filter((i) => i !== setIndex);
-      } else {
-        updated = [...currentSets, setIndex].sort((a, b) => a - b);
-      }
-
-      return {
-        ...prev,
-        [exerciseId]: updated,
-      };
+  // Starts the rest after a tick. Only the user's tap reaches this, so loading, other-tab sync and
+  // unticking never start it.
+  const startRestAfterTick = (exerciseId: string, setIndex: number) => {
+    // The tap that completes the whole day needs no rest: stop a running timer instead
+    const completesDay = activeDay.exercises.every((ex) => {
+      const done = new Set(completedIndexes(appData, ex.id));
+      if (ex.id === exerciseId) done.add(setIndex);
+      return done.size >= parseSetsCount(ex.sets);
     });
-  };
-
-  // Handler: Update set weight/reps details & auto-update previous best
-  const handleUpdateSetDetail = (
-    exerciseId: string,
-    setIndex: number,
-    weight: string,
-    reps: string,
-    unit: 'kg' | 'lbs'
-  ) => {
-    setSetDetailsState((prev) => {
-      const exDetails = prev[exerciseId] || {};
-      const updatedDetail: SetDetail = {
-        setNumber: setIndex + 1,
-        weight,
-        reps,
-        unit,
-        completed: (completedSetsState[exerciseId] || []).includes(setIndex),
-        timestamp: new Date().toISOString(),
-      };
-
-      return {
-        ...prev,
-        [exerciseId]: {
-          ...exDetails,
-          [setIndex]: updatedDetail,
-        },
-      };
-    });
-
-    if (weight && reps) {
-      setPreviousBestsState((prev) => {
-        const existing = prev[exerciseId];
-        const newWeightNum = parseFloat(weight) || 0;
-        const existingWeightNum = existing ? parseFloat(existing.weight) || 0 : 0;
-
-        if (!existing || newWeightNum >= existingWeightNum) {
-          return {
-            ...prev,
-            [exerciseId]: { weight, reps, unit },
-          };
-        }
-        return prev;
-      });
+    if (completesDay) {
+      setRestTimer(null);
+      return;
     }
+    const exercise = activeDay.exercises.find((ex) => ex.id === exerciseId);
+    // Creating/resuming the audio inside this tap lets mobile browsers play the beep later
+    if (restSound === 'on') unlockRestSound();
+    restTimerIdRef.current += 1;
+    setRestTimer({ id: restTimerIdRef.current, ...startRestCountdown(restSecondsForReps(exercise?.reps ?? ''), Date.now()) });
   };
 
-  // Reset active day's progress
-  const handleResetActiveDay = () => {
-    setCompletedSetsState((prev) => {
-      const updated = { ...prev };
-      activeDay.exercises.forEach((ex) => {
-        delete updated[ex.id];
-      });
-      return updated;
-    });
-
-    setSetDetailsState((prev) => {
-      const updated = { ...prev };
-      activeDay.exercises.forEach((ex) => {
-        delete updated[ex.id];
-      });
-      return updated;
-    });
+  // Handlers: each change goes through the store's reducer (src/lib/store/reducer.ts), which also
+  // updates "previous best". A new weight is saved in the current unit; editing only reps keeps the
+  // set's stored weight and unit.
+  const handleToggleSet = (exerciseId: string, setIndex: number) => {
+    const wasDone = completedIndexes(appData, exerciseId).includes(setIndex);
+    dispatch({ type: 'toggleSet', slotId: exerciseId, setIndex, unit: weightUnit });
+    // Rest timer: only when this tap turns a not-done set into a done one
+    if (!wasDone) startRestAfterTick(exerciseId, setIndex);
   };
 
-  // Full reset (All 5 days)
-  const handleResetAll = () => {
-    setCompletedSetsState({});
-    setSetDetailsState({});
-  };
+  const handleUpdateWeight = (exerciseId: string, setIndex: number, weight: string) =>
+    dispatch({ type: 'editWeight', slotId: exerciseId, setIndex, weight, unit: weightUnit });
+
+  const handleUpdateReps = (exerciseId: string, setIndex: number, reps: string) =>
+    dispatch({ type: 'editReps', slotId: exerciseId, setIndex, reps, unit: weightUnit });
+
+  // Reset the active day / all 5 days: current week only, bests stay (as before)
+  const handleResetActiveDay = () => dispatch({ type: 'resetDay', slotIds: activeDay.exercises.map((ex) => ex.id) });
+
+  const handleResetAll = () => dispatch({ type: 'resetAll' });
+
+  // The weekly report's inputs, in the same shapes as before
+  const reportSetDetails = Object.fromEntries(
+    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, setDetails(appData, ex.id)]))
+  );
+  const reportCompletedSets = Object.fromEntries(
+    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, completedIndexes(appData, ex.id)]))
+  );
 
   const handleOpenVideoModal = (videoUrl: string, posterUrl: string, title: string) => {
     setModalState({
@@ -249,18 +148,19 @@ export const App: React.FC = () => {
   const isCurrentDayComplete = activeDayStats.total > 0 && activeDayStats.completed === activeDayStats.total;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex flex-col font-sans">
+    <div
+      className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex flex-col font-sans"
+      style={restTimer ? { paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' } : undefined}
+    >
       {/* Header Banner */}
       <HeaderBanner
         lang={lang}
-        onToggleLanguage={handleToggleLanguage}
+        onToggleLanguage={setLang}
         onOpenAbout={() => setIsAboutOpen(true)}
         onOpenWeeklyReport={() => setIsWeeklyReportOpen(true)}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
         activeDayTitle={activeDayTitle}
-        onResetActiveDay={handleResetActiveDay}
-        onResetAll={handleResetAll}
       />
 
       {/* Day Navigation Tabs */}
@@ -273,8 +173,23 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-4xl mx-auto px-4 py-6 w-full">
+      <main className="flex-1 max-w-4xl mx-auto px-4 pt-3 pb-6 md:pt-6 w-full">
+        {/* Saved workouts could not be read: the app runs in memory and saves nothing this session */}
+        {dataSource === 'error' && (
+          <div
+            role="status"
+            className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-snug text-amber-200"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <span>{t.storageErrorBanner}</span>
+          </div>
+        )}
+
+        {/* Beginner notice + Reset (scrolls away with the page) */}
+        <ProgramNotice lang={lang} onResetActiveDay={handleResetActiveDay} onResetAll={handleResetAll} />
+
         {/* Active Day Header */}
+        {isWide ? (
         <div className="mb-6 bg-[#121215] border border-[#27272a] rounded-2xl p-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -314,6 +229,74 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
+        ) : (
+          /* Compact Day card (phones): same numbers as above, about 90px tall */
+          <div className="mb-3 bg-[#121215] border border-[#27272a] rounded-2xl px-3 py-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs leading-4 font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 rounded border border-emerald-500/20 whitespace-nowrap">
+                    {t.dayPill(activeDay.dayNumber)}
+                  </span>
+                  <span className="text-xs leading-4 text-zinc-400 font-medium whitespace-nowrap">
+                    {t.exerciseCount(activeDay.exercises.length)}
+                  </span>
+                </div>
+                <h2 className="mt-0.5 text-lg leading-6 font-extrabold text-white tracking-tight font-['Plus_Jakarta_Sans'] line-clamp-2">
+                  {activeDayTitle}
+                </h2>
+              </div>
+
+              {/* Day Progress */}
+              <div className="shrink-0 flex items-center gap-2">
+                <div className="text-right leading-none">
+                  <span className="block text-sm font-extrabold text-white font-mono whitespace-nowrap">
+                    {activeDayStats.completed} / {activeDayStats.total}
+                  </span>
+                  <span className="block mt-1 text-xs font-bold uppercase text-zinc-400">{t.sets}</span>
+                </div>
+                {isCurrentDayComplete ? (
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500 text-black flex items-center justify-center">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                ) : (
+                  <div className="w-7 h-7 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <Flame className="w-4 h-4 text-emerald-400" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description: 1 line, tap to show all. Padding + negative margin give a 40px tap area without a taller card */}
+            <button
+              onClick={() => setIsDayDescExpanded((expanded) => !expanded)}
+              aria-expanded={isDayDescExpanded}
+              className="relative w-full -mt-2.5 pt-3 -mb-3 pb-3 flex items-start gap-1.5 text-left cursor-pointer"
+            >
+              <span className={`flex-1 min-w-0 text-xs leading-4 text-zinc-300 ${isDayDescExpanded ? 'block' : 'line-clamp-1'}`}>
+                {activeDayDesc}
+              </span>
+              <ChevronDown className={`w-4 h-4 shrink-0 text-zinc-400 transition-transform ${isDayDescExpanded ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Completed / total sets of this day */}
+            <div
+              role="progressbar"
+              aria-label={t.dayProgress}
+              aria-valuemin={0}
+              aria-valuemax={activeDayStats.total}
+              aria-valuenow={activeDayStats.completed}
+              className="relative mt-1.5 h-1.5 rounded-full bg-zinc-800 overflow-hidden"
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-[width] duration-300"
+                style={{ width: `${activeDayStats.total > 0 ? (activeDayStats.completed / activeDayStats.total) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Exercise List Cards */}
         <div className="space-y-6">
@@ -323,11 +306,14 @@ export const App: React.FC = () => {
               exercise={exercise}
               index={idx}
               lang={lang}
-              completedSetIndexes={completedSetsState[exercise.id] || []}
-              setDetails={setDetailsState[exercise.id] || {}}
-              previousBest={previousBestsState[exercise.id]}
+              completedSetIndexes={completedIndexes(appData, exercise.id)}
+              setDetails={setDetails(appData, exercise.id)}
+              previousBest={previousBest(appData, exercise.id)}
+              weightUnit={weightUnit}
+              onChangeWeightUnit={setWeightUnit}
               onToggleSet={handleToggleSet}
-              onUpdateSetDetail={handleUpdateSetDetail}
+              onUpdateWeight={handleUpdateWeight}
+              onUpdateReps={handleUpdateReps}
               onOpenVideoModal={handleOpenVideoModal}
             />
           ))}
@@ -370,6 +356,22 @@ export const App: React.FC = () => {
         </div>
       </footer>
 
+      {/* Rest timer bar: z-40, so the dialogs below (z-50) always cover it */}
+      {restTimer && (
+        <RestTimerBar
+          key={restTimer.id}
+          lang={lang}
+          countdown={restTimer}
+          soundOn={restSound === 'on'}
+          onToggleSound={() => {
+            if (restSound === 'off') unlockRestSound();
+            setRestSound(restSound === 'on' ? 'off' : 'on');
+          }}
+          onAddTime={() => setRestTimer((timer) => timer && { ...timer, ...addRestTime(timer, Date.now(), 15) })}
+          onClose={() => setRestTimer(null)}
+        />
+      )}
+
       {/* Fullscreen Video Modal */}
       <VideoModal
         isOpen={modalState.isOpen}
@@ -391,7 +393,9 @@ export const App: React.FC = () => {
         isOpen={isWeeklyReportOpen}
         lang={lang}
         days={enrichedDays}
-        setDetailsState={setDetailsState}
+        setDetailsState={reportSetDetails}
+        completedSets={reportCompletedSets}
+        weightUnit={weightUnit}
         completedSetsCount={totalCompletedSets}
         totalSetsCount={totalProgramSets}
         completedDaysCount={completedDaysCount}

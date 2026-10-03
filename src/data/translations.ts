@@ -15,6 +15,8 @@ export interface UiTranslations {
   cancel: string;
   dayRoutineTitle: (dayNum: number) => string;
   exercisesPrescribed: (count: number) => string;
+  dayPill: (dayNum: number) => string;
+  exerciseCount: (count: number) => string;
   dayProgress: string;
   formDemoTab: string;
   muscleMapTab: string;
@@ -28,6 +30,19 @@ export interface UiTranslations {
   setBtn: (setNum: number) => string;
   weightPlaceholder: string;
   repsPlaceholder: string;
+  weightInputLabel: (setNum: number, unit: string) => string;
+  repsInputLabel: (setNum: number) => string;
+  setDoneLabel: (setNum: number) => string;
+  restLabel: string;
+  restStarted: (time: string) => string;
+  restOver: string;
+  addRestTime: string;
+  addRestTimeShort: string;
+  skipRest: string;
+  restSound: string;
+  soundOn: string;
+  soundOff: string;
+  storageErrorBanner: string;
   dayCompleteTitle: (dayNum: number) => string;
   dayCompleteText: (dayTitle: string) => string;
   footerTitle: string;
@@ -76,6 +91,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     cancel: 'Cancel',
     dayRoutineTitle: (dayNum) => `Day ${dayNum} Routine`,
     exercisesPrescribed: (count) => `${count} Exercises Prescribed`,
+    dayPill: (dayNum) => `Day ${dayNum}`,
+    exerciseCount: (count) => `${count} Exercises`,
     dayProgress: 'Day Progress',
     formDemoTab: 'Form Demo',
     muscleMapTab: 'Muscle Map',
@@ -87,8 +104,22 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     coachingCueLabel: 'COACHING CUE',
     logSessionLabel: (completed, total) => `Log Session (${completed}/${total} Sets)`,
     setBtn: (setNum) => `Set ${setNum}`,
-    weightPlaceholder: '0',
-    repsPlaceholder: '0',
+    weightPlaceholder: '–',
+    repsPlaceholder: '–',
+    weightInputLabel: (setNum, unit) => `Set ${setNum} weight (${unit})`,
+    repsInputLabel: (setNum) => `Set ${setNum} reps`,
+    setDoneLabel: (setNum) => `Set ${setNum} done`,
+    restLabel: 'Rest',
+    restStarted: (time) => `Rest started: ${time}`,
+    restOver: 'Rest over - next set!',
+    addRestTime: 'Add 15 seconds',
+    addRestTimeShort: '+15s',
+    skipRest: 'Skip',
+    restSound: 'Rest timer sound',
+    soundOn: 'Sound on',
+    soundOff: 'Sound off',
+    storageErrorBanner:
+      "We couldn't read your saved workouts, so nothing will be saved this session. Your data is not deleted. Please reload.",
     dayCompleteTitle: (dayNum) => `Day ${dayNum} Complete! 🎉`,
     dayCompleteText: (dayTitle) =>
       `Outstanding work on ${dayTitle}. Fuel up with protein and rest up for your next training session.`,
@@ -137,6 +168,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     cancel: '取消',
     dayRoutineTitle: (dayNum) => `第 ${dayNum} 天训练`,
     exercisesPrescribed: (count) => `包含 ${count} 项动作`,
+    dayPill: (dayNum) => `第 ${dayNum} 天`,
+    exerciseCount: (count) => `${count} 项动作`,
     dayProgress: '本日进度',
     formDemoTab: '动作示范',
     muscleMapTab: '目标肌群',
@@ -148,8 +181,21 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     coachingCueLabel: '动作要领',
     logSessionLabel: (completed, total) => `训练打卡 (${completed}/${total} 组)`,
     setBtn: (setNum) => `第 ${setNum} 组`,
-    weightPlaceholder: '0',
-    repsPlaceholder: '0',
+    weightPlaceholder: '–',
+    repsPlaceholder: '–',
+    weightInputLabel: (setNum, unit) => `第 ${setNum} 组 重量（${unit}）`,
+    repsInputLabel: (setNum) => `第 ${setNum} 组 次数`,
+    setDoneLabel: (setNum) => `第 ${setNum} 组 已完成`,
+    restLabel: '休息',
+    restStarted: (time) => `开始休息：${time}`,
+    restOver: '休息结束，开始下一组！',
+    addRestTime: '增加 15 秒',
+    addRestTimeShort: '+15秒',
+    skipRest: '跳过',
+    restSound: '休息提示音',
+    soundOn: '声音开',
+    soundOff: '声音关',
+    storageErrorBanner: '无法读取已保存的训练记录，本次使用期间不会保存任何内容。您的数据没有被删除，请刷新页面。',
     dayCompleteTitle: (dayNum) => `第 ${dayNum} 天训练打卡完成！🎉`,
     dayCompleteText: (dayTitle) => `【${dayTitle}】训练顺利完成！及时补充蛋白质与碳水，保持充足休息。`,
     footerTitle: 'Marcus 5天美学形体增肌训练系统',

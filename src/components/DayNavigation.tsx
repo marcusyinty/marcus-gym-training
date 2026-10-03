@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { EnrichedWorkoutDay } from '../types/workout';
 import { Language, dayTranslationsZh } from '../data/translations';
 
@@ -17,10 +17,48 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
   onSelectDay,
   dayCompletionStats,
 }) => {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const activeTabRef = useRef<HTMLButtonElement | null>(null);
+  const [edgeFades, setEdgeFades] = useState({ left: false, right: false });
+
+  // Fade an edge when more tabs are hidden behind it, so it is clear the strip scrolls sideways
+  const updateEdgeFades = () => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const left = scroller.scrollLeft > 1;
+    const right = scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1;
+    setEdgeFades((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  };
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const observer = new ResizeObserver(updateEdgeFades);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, []);
+
+  // Keep the active tab fully in view by scrolling the tab strip only (never the page)
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const tab = activeTabRef.current;
+    if (scroller && tab) {
+      const margin = 32; // room for the edge fade
+      const tabLeft = tab.offsetLeft;
+      const tabRight = tabLeft + tab.offsetWidth;
+      if (tabLeft - margin < scroller.scrollLeft) {
+        scroller.scrollTo({ left: tabLeft - margin, behavior: 'smooth' });
+      } else if (tabRight + margin > scroller.scrollLeft + scroller.clientWidth) {
+        scroller.scrollTo({ left: tabRight + margin - scroller.clientWidth, behavior: 'smooth' });
+      }
+    }
+    updateEdgeFades();
+  }, [activeDayId, lang]);
+
   return (
-    <nav className="w-full bg-[#09090b] border-b border-[#18181b] py-3 sticky top-[125px] sm:top-[129px] z-30 backdrop-blur-md bg-opacity-95">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5 scroll-smooth">
+    <nav className="w-full bg-[#09090b] border-b border-[#18181b] py-0.5 sticky top-[var(--header-height,53px)] z-30 backdrop-blur-md bg-opacity-95">
+      <div className="relative max-w-4xl mx-auto">
+        <div ref={scrollerRef} onScroll={updateEdgeFades} className="relative flex gap-2 overflow-x-auto no-scrollbar px-3 sm:px-4 py-0.5">
           {days.map((day) => {
             const isActive = day.id === activeDayId;
             const stats = dayCompletionStats[day.id] || { completed: 0, total: day.exercises.length * 3 };
@@ -33,8 +71,10 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
             return (
               <button
                 key={day.id}
+                ref={isActive ? activeTabRef : undefined}
                 onClick={() => onSelectDay(day.id)}
-                className={`flex-shrink-0 flex flex-col items-start px-4 py-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer relative group ${
+                aria-current={isActive ? 'true' : undefined}
+                className={`shrink-0 min-h-10 flex flex-col items-start px-3 py-1 rounded-xl border text-left transition-all duration-200 cursor-pointer relative group ${
                   isActive
                     ? 'bg-gradient-to-br from-[#16161a] to-[#1a1a20] border-emerald-500/60 shadow-lg shadow-emerald-950/30'
                     : 'bg-[#121215]/80 border-[#27272a]/60 hover:bg-[#18181c] hover:border-zinc-700'
@@ -47,7 +87,7 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
 
                 <div className="flex items-center gap-2 w-full">
                   <span
-                    className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                    className={`text-xs leading-4 font-extrabold uppercase tracking-wider px-1.5 rounded ${
                       isActive
                         ? 'bg-emerald-500 text-black'
                         : isDayDone
@@ -57,23 +97,36 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
                   >
                     Day {day.dayNumber}
                   </span>
-                  <span className="text-xs text-zinc-400 font-medium ml-auto">
+                  <span className="text-xs leading-4 text-zinc-400 font-medium ml-auto">
                     {day.exercises.length} {lang === 'zh' ? '项' : 'Ex'}
                   </span>
                 </div>
 
-                <div className="mt-1 font-bold text-sm text-white tracking-tight flex items-center gap-1.5 font-['Plus_Jakarta_Sans']">
+                <div className="mt-0.5 font-bold text-sm leading-5 text-white tracking-tight whitespace-nowrap flex items-center gap-1.5 font-['Plus_Jakarta_Sans']">
                   {title}
-                  {isDayDone && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />}
+                  {isDayDone && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />}
                 </div>
 
-                <div className="mt-0.5 text-[11px] text-zinc-400 truncate max-w-[140px]">
-                  {focus}
-                </div>
+                {/* Focus line only on wider screens; phones get a compact 2-line tab */}
+                <div className="hidden sm:block mt-0.5 text-xs text-zinc-400 truncate max-w-[160px]">{focus}</div>
               </button>
             );
           })}
         </div>
+
+        {/* Edge fades (decorative) */}
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#09090b] to-transparent transition-opacity ${
+            edgeFades.left ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#09090b] to-transparent transition-opacity ${
+            edgeFades.right ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
       </div>
     </nav>
   );

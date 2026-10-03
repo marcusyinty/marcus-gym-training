@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 
 interface VideoModalProps {
@@ -16,10 +16,43 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   title,
   onClose,
 }) => {
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // While open: Escape closes it, and the page behind it cannot scroll (restored on close or unmount)
+  useEffect(() => {
+    if (!isOpen) return;
+    const { body, documentElement } = document;
+    const previousOverflow = { body: body.style.overflow, html: documentElement.style.overflow };
+    body.style.overflow = 'hidden';
+    documentElement.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCloseRef.current();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      body.style.overflow = previousOverflow.body;
+      documentElement.style.overflow = previousOverflow.html;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-200"
+    >
       <div className="relative w-full max-w-lg bg-[#121215] border border-[#27272a] rounded-2xl overflow-hidden shadow-2xl flex flex-col">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#27272a] bg-[#09090b]">
@@ -29,6 +62,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-2 rounded-xl bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -42,6 +76,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             poster={posterUrl}
             autoPlay
             loop
+            muted
             controls
             playsInline
             className="w-full h-full object-contain"
