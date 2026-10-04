@@ -22,6 +22,18 @@ export const normalizeRemark = (text: string): string => {
   return characters(limited.join('\n')).slice(0, REMARK_MAX_LENGTH).join('').trim();
 };
 
+// While typing in the editor: the same 3-line and 200-character limits, but nothing is trimmed yet (a space
+// typed at the end must stay); pasted text over the limits is cut the same way
+export const limitRemarkInput = (text: string): string => {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const limited =
+    lines.length > REMARK_MAX_LINES ? [...lines.slice(0, REMARK_MAX_LINES - 1), lines.slice(REMARK_MAX_LINES - 1).join(' ')] : lines;
+  return characters(limited.join('\n')).slice(0, REMARK_MAX_LENGTH).join('');
+};
+
+// Characters as people count them (for the "n/200" counter)
+export const remarkLength = (text: string): number => characters(text).length;
+
 // Saved remarks as loaded: only text, only for exercise ids the app knows, cleaned like a new remark, at most
 // 100. `dropped` is true when anything had to be removed or changed (then the original text is backed up).
 export const cleanRemarks = (

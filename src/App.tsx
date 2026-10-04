@@ -11,17 +11,18 @@ import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { HistoryModal } from './components/HistoryModal';
 import { SwapSheet } from './components/SwapSheet';
-import { alternativesForSlot, performedExercise, performedExerciseIdIn } from './lib/exerciseVariants';
+import { alternativesForSlot, performedExercise, performedExerciseIdIn, performedExerciseName } from './lib/exerciseVariants';
 import { exerciseIdForSlotId } from './lib/exerciseIds';
 import { swapOptions } from './lib/store/swap';
-import type { SwapResult } from './lib/store/appDataStore';
+import type { RemarkResult, SwapResult } from './lib/store/appDataStore';
+import { RemarkSheet } from './components/RemarkSheet';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
 import { useAppData } from './hooks/useAppData';
 import { languageItem, restSoundItem, weightUnitItem } from './lib/savedData';
 import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
 import { unlockRestSound } from './lib/restAlert';
-import { completedIndexes, cycleProgress, previousBest, setDetails, tickedSetCount } from './lib/store/selectors';
+import { completedIndexes, cycleProgress, previousBest, remarkForSlot, setDetails, tickedSetCount } from './lib/store/selectors';
 import { shouldAutoOpenReport } from './lib/store/reportAutoOpen';
 import { currentWeekNumber } from './lib/weeks';
 import { useMediaQuery } from './hooks/useMediaQuery';
@@ -35,13 +36,15 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek, swapExercise } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek, swapExercise, setRemark } = useAppData();
   // A short notice when another tab's newer save replaced something here (see appDataStore)
   // droppedChange: an unsaved change here lost; weekStartedElsewhere: Start new week happened there first;
   // updated: a swap or note found newer data from another tab (shown now)
   const [tabNotice, setTabNotice] = useState<'droppedChange' | 'weekStartedElsewhere' | 'updated' | null>(null);
   // The slot whose exercise chooser is open, or null
   const [swapSlotId, setSwapSlotId] = useState<string | null>(null);
+  // The slot whose note editor is open, or null
+  const [remarkSlotId, setRemarkSlotId] = useState<string | null>(null);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -171,6 +174,17 @@ export const App: React.FC = () => {
   // Swap (the exercise chooser): saved right away by the store, which also checks the rule again on the
   // newest data. If another tab changed things meanwhile, the newest data is shown with a notice.
   const swapSlot = swapSlotId ? activeDay.exercises.find((exercise) => exercise.id === swapSlotId) ?? null : null;
+
+  // Notes belong to the exercise actually done in the slot (Day 2 and Day 5 Leg Press share one; a
+  // swapped-in alternative has its own). Saved right away; another tab's newer data is kept (notice).
+  const remarkSlot = remarkSlotId ? activeDay.exercises.find((exercise) => exercise.id === remarkSlotId) ?? null : null;
+  const remarkExercise = remarkSlot ? performedExercise(remarkSlot, performedExerciseIdIn(appData.currentCycle, remarkSlot.id)) : null;
+  const handleSaveRemark = (text: string): RemarkResult => {
+    if (!remarkExercise) return { ok: false, reason: 'unknownExercise', updatedFromOtherTab: false };
+    const result = setRemark(remarkExercise.performedExerciseId, text);
+    if (result.updatedFromOtherTab) setTabNotice('updated');
+    return result;
+  };
   const handleSwap = (to: string): SwapResult => {
     if (!swapSlot) return { ok: false, reason: 'notAllowed', updatedFromOtherTab: false };
     const from = swapOptions(appData, swapSlot.id).current;
@@ -387,6 +401,7 @@ export const App: React.FC = () => {
             <ExerciseCard
               key={exercise.id}
               exercise={performedExercise(exercise, performedExerciseIdIn(appData.currentCycle, exercise.id))}
+              remark={{ text: remarkForSlot(appData, exercise.id), onEdit: () => setRemarkSlotId(exercise.id) }}
               swap={
                 alternativesForSlot(exercise.id).length > 0
                   ? { isSwapped: performedExerciseIdIn(appData.currentCycle, exercise.id) !== exerciseIdForSlotId(exercise.id), onOpen: () => setSwapSlotId(exercise.id) }
@@ -506,6 +521,18 @@ export const App: React.FC = () => {
         startNewWeek={{ availability: startNewWeekAvailability, onConfirm: handleStartNewWeek }}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
+
+      {/* Note editor for the exercise actually done in one slot */}
+      {remarkSlot && remarkExercise && (
+        <RemarkSheet
+          open
+          lang={lang}
+          exerciseName={performedExerciseName(remarkSlot, remarkExercise.performedExerciseId, lang)}
+          initialText={remarkForSlot(appData, remarkSlot.id)}
+          onSave={handleSaveRemark}
+          onClose={() => setRemarkSlotId(null)}
+        />
+      )}
 
       {/* Exercise chooser for one slot (only slots with an alternative have a swap button) */}
       {swapSlot && (

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { workoutProgram } from '../data/workoutProgram';
 import { AppDataV3 } from './model';
-import { cleanRemarks, MAX_REMARKS, normalizeRemark } from './remarks';
+import { cleanRemarks, limitRemarkInput, MAX_REMARKS, normalizeRemark, remarkLength } from './remarks';
 import { createBackupFile, parseBackupFile } from './store/backup';
 import { validateV3 } from './store/dataV3';
 import { reduce, StoreAction } from './store/reducer';
@@ -33,6 +33,19 @@ describe('remark text', () => {
   it('at most 3 lines: extra line breaks become spaces (no words lost); Windows line breaks too', () => {
     expect(normalizeRemark('seat 4\npulley 5\nbench 30°\nhandle\nrope')).toBe('seat 4\npulley 5\nbench 30° handle rope');
     expect(normalizeRemark('a\r\nb\r\nc\r\nd')).toBe('a\nb\nc d');
+  });
+});
+
+describe('typing in the note editor', () => {
+  it('limits lines and length while typing, but keeps spaces (nothing is trimmed until saved)', () => {
+    expect(limitRemarkInput('seat 4 ')).toBe('seat 4 ');
+    expect(limitRemarkInput('a\nb\nc\nd')).toBe('a\nb\nc d');
+    expect(limitRemarkInput('x'.repeat(250))).toHaveLength(200);
+    expect(limitRemarkInput('💪🏽'.repeat(210))).toBe('💪🏽'.repeat(200));
+  });
+
+  it('counts characters as people do (an emoji or a Chinese character is one)', () => {
+    expect([remarkLength('座椅 4'), remarkLength('💪🏽💪🏽'), remarkLength('')]).toEqual([4, 2, 0]);
   });
 });
 

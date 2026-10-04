@@ -148,6 +148,11 @@ export interface UiTranslations {
   changeSaveFailed: string;
   updatedFromOtherTabNeutral: string;
   noVideoYet: string;
+  remarkPlaceholder: string;
+  remarkTitle: (exercise: string) => string;
+  remarkHint: string;
+  remarkSave: string;
+  remarkRowLabel: (exercise: string, remark: string) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -305,6 +310,11 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     changeSaveFailed: "The change couldn't be saved on this phone, so nothing was changed.",
     updatedFromOtherTabNeutral: 'Updated with newer data from another tab.',
     noVideoYet: 'No video yet',
+    remarkPlaceholder: 'Add a note (seat height, incline holes…)',
+    remarkTitle: (exercise) => `Note for ${exercise}`,
+    remarkHint: 'Up to 3 lines. Save empty to delete the note.',
+    remarkSave: 'Save',
+    remarkRowLabel: (exercise, remark) => (remark ? `Note for ${exercise}: ${remark}` : `Add a note for ${exercise}`),
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -455,6 +465,11 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     changeSaveFailed: '无法在这台手机上保存这项更改，因此没有做任何更改。',
     updatedFromOtherTabNeutral: '已使用另一个标签页中较新的数据更新。',
     noVideoYet: '暂无视频',
+    remarkPlaceholder: '添加备注（座椅高度、上斜孔位…）',
+    remarkTitle: (exercise) => `${exercise} 的备注`,
+    remarkHint: '最多 3 行。清空后保存即可删除备注。',
+    remarkSave: '保存',
+    remarkRowLabel: (exercise, remark) => (remark ? `${exercise} 的备注：${remark}` : `为 ${exercise} 添加备注`),
   },
 };
 

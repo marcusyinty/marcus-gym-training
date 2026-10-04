@@ -5,7 +5,7 @@ import { AnatomyMap } from './AnatomyMap';
 import { displayWeight, WeightUnit } from '../lib/units';
 import { parseSetsCount } from '../utils/parseSetsCount';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, ArrowLeftRight } from 'lucide-react';
+import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, ArrowLeftRight, PencilLine } from 'lucide-react';
 
 interface ExerciseCardProps {
   // The exercise done in this slot this week: the program's, or a swapped-in alternative (see performedExercise)
@@ -23,6 +23,8 @@ interface ExerciseCardProps {
   onOpenVideoModal: (videoUrl: string, posterUrl: string, title: string) => void;
   // Only for slots that have an alternative: the swap button (amber "Swapped" while an alternative is done)
   swap?: { isSwapped: boolean; onOpen: () => void };
+  // The note of the exercise actually done, and opening its editor
+  remark?: { text: string; onEdit: () => void };
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -39,6 +41,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onUpdateReps,
   onOpenVideoModal,
   swap,
+  remark,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -127,25 +130,45 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const setInputLabelClass =
     'pointer-events-none absolute inset-x-0 bottom-1 text-center text-xs leading-none font-bold text-zinc-400';
 
-  // The row under the name: the swap button (only on slots with an alternative)
-  const actionsRow = swap ? (
+  // The row under the name: the note (one line, the editor shows all of it) and, only on slots with an
+  // alternative, the swap button. It changes only after a save, never while typing in the editor.
+  const remarkLine = remark?.text.replace(/\n+/g, ' · ') ?? '';
+  const actionsRow = remark || swap ? (
     <div data-exercise-actions className="mt-2.5 flex items-center gap-2">
-      <div className="flex-1 min-w-0" />
-      <button
-        type="button"
-        onClick={swap.onOpen}
-        aria-haspopup="dialog"
-        aria-label={t.swapButtonLabel(exerciseName)}
-        data-swap-button
-        className={`h-11 px-3 shrink-0 flex items-center gap-1.5 rounded-xl border text-xs font-bold cursor-pointer ${
-          swap.isSwapped
-            ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
-            : 'border-zinc-700 bg-[#18181c] text-zinc-200 hover:border-zinc-500'
-        }`}
-      >
-        <ArrowLeftRight className="w-4 h-4" />
-        {swap.isSwapped ? t.swappedButton : t.swapButton}
-      </button>
+      {remark ? (
+        <button
+          type="button"
+          onClick={remark.onEdit}
+          aria-haspopup="dialog"
+          aria-label={t.remarkRowLabel(exerciseName, remarkLine)}
+          data-remark-row
+          className="flex-1 min-w-0 h-11 px-3 flex items-center gap-2 rounded-xl border border-[#27272a] bg-[#0d0d10] text-left hover:border-zinc-600 cursor-pointer"
+        >
+          <PencilLine className="w-4 h-4 shrink-0 text-zinc-500" />
+          <span className={`min-w-0 flex-1 truncate text-xs ${remarkLine ? 'text-zinc-200' : 'italic text-zinc-500'}`}>
+            {remarkLine || t.remarkPlaceholder}
+          </span>
+        </button>
+      ) : (
+        <div className="flex-1 min-w-0" />
+      )}
+      {swap && (
+        <button
+          type="button"
+          onClick={swap.onOpen}
+          aria-haspopup="dialog"
+          aria-label={t.swapButtonLabel(exerciseName)}
+          data-swap-button
+          className={`h-11 px-3 shrink-0 flex items-center gap-1.5 rounded-xl border text-xs font-bold cursor-pointer ${
+            swap.isSwapped
+              ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+              : 'border-zinc-700 bg-[#18181c] text-zinc-200 hover:border-zinc-500'
+          }`}
+        >
+          <ArrowLeftRight className="w-4 h-4" />
+          {swap.isSwapped ? t.swappedButton : t.swapButton}
+        </button>
+      )}
     </div>
   ) : null;
 
