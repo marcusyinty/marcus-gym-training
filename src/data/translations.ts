@@ -128,6 +128,7 @@ export interface UiTranslations {
   reportBrand: string;
   reportCleared: (percent: number) => string;
   bodyweightShort: string;
+  exerciseCountShort: (count: number) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -265,6 +266,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     reportBrand: 'MARCUS HYPERTROPHY',
     reportCleared: (percent) => `${percent}% Cleared`,
     bodyweightShort: 'BW',
+    exerciseCountShort: (count) => `${count} Ex`,
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -395,6 +397,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     reportBrand: 'MARCUS 增肌站',
     reportCleared: (percent) => `完成 ${percent}%`,
     bodyweightShort: '自重',
+    exerciseCountShort: (count) => `${count} 项`,
   },
 };
 

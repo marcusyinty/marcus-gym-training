@@ -25,6 +25,11 @@ describe('weekly report words, EN and 中文', () => {
     expect([en.exerciseCount(6), zh.exerciseCount(6)]).toEqual(['6 Exercises', '6 项动作']);
   });
 
+  it('day tabs: "Day 1" / "6 Ex" in English (unchanged), "第 1 天" / "6 项" in 中文', () => {
+    expect([en.dayPill(1), en.exerciseCountShort(6)]).toEqual(['Day 1', '6 Ex']);
+    expect([zh.dayPill(1), zh.exerciseCountShort(6)]).toEqual(['第 1 天', '6 项']);
+  });
+
   it('week captions', () => {
     const local = (d: number) => new Date(2026, 9, d, 12).toISOString();
     expect(weekCaption({ id: 'w', startedAt: local(2), slots: {} }, 1, 'zh', zh)).toBe('第 1 周 · 2026年10月2日 起');
