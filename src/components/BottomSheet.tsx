@@ -9,8 +9,8 @@ interface BottomSheetProps {
 }
 
 // The phone's back gesture: each open sheet adds one history entry, so "back" closes the newest sheet instead
-// of leaving the page. Steps back that a sheet causes itself (closed with a button, or React's double run of
-// effects in development) are counted and ignored. One listener for all sheets, never removed.
+// of leaving the page. The step back a sheet takes itself when closed with a button is counted and ignored.
+// One listener for all sheets, never removed.
 let ownBackSteps = 0;
 const sheetClosers: (() => void)[] = [];
 let listening = false;
@@ -70,17 +70,23 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, labelle
       listening = true;
     }
     let closedByBack = false;
+    let pushed = false;
     const close = () => {
       closedByBack = true;
       onCloseRef.current();
     };
     sheetClosers.push(close);
-    window.history.pushState({ ...window.history.state, bottomSheet: true }, '');
+    // Added a moment later: React's double run of effects in development then cancels it before it exists
+    const timer = window.setTimeout(() => {
+      window.history.pushState({ ...window.history.state, bottomSheet: true }, '');
+      pushed = true;
+    }, 0);
     return () => {
+      window.clearTimeout(timer);
       const index = sheetClosers.indexOf(close);
       if (index >= 0) sheetClosers.splice(index, 1);
       // Closed some other way: take the entry away again (that step back must not close anything)
-      if (!closedByBack && window.history.state?.bottomSheet) {
+      if (pushed && !closedByBack && window.history.state?.bottomSheet) {
         ownBackSteps++;
         window.history.back();
       }
