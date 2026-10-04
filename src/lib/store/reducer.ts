@@ -6,6 +6,8 @@ import { AppDataV3, LoggedSet, LoggedSlot } from '../model';
 import { WeightUnit, withRepsEdit, withWeightEdit } from '../units';
 import { hasDetail, tickedSetCount } from './selectors';
 import { applySwap, checkSwap } from './swap';
+import { knownExerciseIds } from '../exerciseVariants';
+import { normalizeRemark } from '../remarks';
 
 export type SetTag = 'easy' | 'good' | 'max';
 
@@ -23,7 +25,9 @@ export type StoreAction =
   // cycleId: the week the user was looking at; newId: the id for the new empty week
   | { type: 'startNewWeek'; cycleId: string; newId: string }
   // which exercise a slot does this week (see swap.ts for the rule); from: the exercise the user saw there
-  | { type: 'swapExercise'; cycleId: string; slotId: string; from: string; to: string };
+  | { type: 'swapExercise'; cycleId: string; slotId: string; from: string; to: string }
+  // a permanent note for an exercise id; empty text deletes it
+  | { type: 'setRemark'; exerciseId: string; text: string };
 
 export interface ReducerContext {
   now: Date;
@@ -120,8 +124,28 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
       // Current cycle only, same as resetDay: archived cycles and bests are never touched
       return { ...state, currentCycle: { ...state.currentCycle, slots: {} } };
 
-    case 'replaceAll':
-      return { ...action.data };
+    case 'replaceAll': {
+      // A backup made before remarks existed has no remarks field: the phone keeps its own remarks. A backup
+      // with the field (even empty) replaces them. No remarks are kept as no field at all.
+      const { remarks: _ignored, ...rest } = action.data;
+      const remarks = action.data.remarks === undefined ? state.remarks : action.data.remarks;
+      return remarks && Object.keys(remarks).length > 0 ? { ...rest, remarks } : rest;
+    }
+
+    case 'setRemark': {
+      // Only for exercise ids the app knows; the text is cleaned (see remarks.ts)
+      if (!knownExerciseIds.has(action.exerciseId)) return state;
+      const text = normalizeRemark(action.text);
+      const current = state.remarks && hasOwn(state.remarks, action.exerciseId) ? state.remarks[action.exerciseId] : undefined;
+      if ((current ?? '') === text) return state;
+      const others = Object.fromEntries(Object.entries(state.remarks ?? {}).filter(([id]) => id !== action.exerciseId));
+      if (text === '') {
+        // Deleting the last remark removes the field again
+        const { remarks: _old, ...rest } = state;
+        return Object.keys(others).length > 0 ? { ...rest, remarks: others } : rest;
+      }
+      return { ...state, remarks: { ...others, [action.exerciseId]: text } };
+    }
 
     case 'swapExercise':
       // Not allowed (ticked sets, another week, ...): nothing changes; the store reports the reason

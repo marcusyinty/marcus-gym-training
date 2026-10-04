@@ -577,3 +577,53 @@ describe('swapping a slot (saved right away, stale tabs)', () => {
     expect(store.getState()).toBe(before);
   });
 });
+
+describe('remarks in the store (saved right away, stale tabs, restores)', () => {
+  const stored = (storage: MemoryStorage) => JSON.parse(storage.getItem(STORAGE_KEY_V3)!) as AppDataV3;
+
+  it('a remark is saved straight away and comes back cleaned', () => {
+    const storage = new MemoryStorage();
+    const store = createAppDataStore(options(storage));
+    expect(store.setRemark('btb-lateral-raise', '  pulley at hole 5  ')).toEqual({ ok: true, saved: 'pulley at hole 5', updatedFromOtherTab: false });
+    expect(stored(storage).remarks).toEqual({ 'btb-lateral-raise': 'pulley at hole 5' });
+    expect(store.setRemark('btb-lateral-raise', '')).toEqual({ ok: true, saved: '', updatedFromOtherTab: false });
+    expect('remarks' in stored(storage)).toBe(false);
+    expect(store.setRemark('made-up', 'x')).toEqual({ ok: false, reason: 'unknownExercise', updatedFromOtherTab: false });
+  });
+
+  it("a stale tab saving a remark keeps the other tab's remarks and data, and says it was updated", () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared));
+    tabA.dispatch(tick('leg-press', 0));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared));
+    expect(tabA.setRemark('leg-press', 'seat 4').ok).toBe(true);
+    tabA.dispatch(tick('leg-press', 1));
+    tabA.flush();
+    // B never heard about A's remark or second tick
+    expect(tabB.setRemark('incline-db-press', 'bench 3 holes up')).toEqual({ ok: true, saved: 'bench 3 holes up', updatedFromOtherTab: true });
+    expect([stored(shared).remarks, completedIndexes(stored(shared), 'leg-press')]).toEqual([{ 'leg-press': 'seat 4', 'incline-db-press': 'bench 3 holes up' }, [0, 1]]);
+  });
+
+  it('not saved in an error session', () => {
+    const errorStorage = new MemoryStorage({ ...V2_RECORDED });
+    const store = createAppDataStore(options(errorStorage, () => { throw new Error('no ids'); }));
+    expect(store.setRemark('leg-press', 'seat 4')).toEqual({ ok: false, reason: 'savingOff', updatedFromOtherTab: false });
+    expect(errorStorage.writes).toEqual([]);
+  });
+
+  it('restores: an old backup keeps the remarks, a new one replaces them; the safety copy has them both times', () => {
+    const run = (backupData: AppDataV3) => {
+      const storage = new MemoryStorage();
+      const store = createAppDataStore({ ...options(storage), now: () => new Date('2026-10-05T09:00:00.000Z') });
+      store.setRemark('leg-press', 'seat 4');
+      store.restore(backupData);
+      const copyKey = [...storage.data.keys()].find((k) => k.startsWith(PRE_RESTORE_PREFIX))!;
+      return { remarks: stored(storage).remarks, safetyCopyRemarks: JSON.parse(storage.getItem(copyKey)!).remarks };
+    };
+    const base = { schemaVersion: 3 as const, currentCycle: { id: 'restored', startedAt: 't', slots: {} }, archivedCycles: [], bests: {}, reportShownCycleIds: [] };
+    expect(run(base)).toEqual({ remarks: { 'leg-press': 'seat 4' }, safetyCopyRemarks: { 'leg-press': 'seat 4' } }); // no remarks field: kept
+    expect(run({ ...base, remarks: {} })).toEqual({ remarks: undefined, safetyCopyRemarks: { 'leg-press': 'seat 4' } }); // empty field: replaced
+    expect(run({ ...base, remarks: { 'pec-deck': 'seat 2' } })).toEqual({ remarks: { 'pec-deck': 'seat 2' }, safetyCopyRemarks: { 'leg-press': 'seat 4' } });
+  });
+});

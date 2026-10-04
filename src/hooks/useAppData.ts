@@ -61,5 +61,6 @@ export function useAppData() {
     restore: store.restore,
     startNewWeek: store.startNewWeek,
     swapExercise: store.swapExercise,
+    setRemark: store.setRemark,
   };
 }

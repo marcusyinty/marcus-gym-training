@@ -11,7 +11,8 @@ import { AppDataV3 } from '../model';
 import { KeyedStorage, pruneSafetyCopies, saveSafetyCopy } from './backup';
 import { loadAppData, LoadSource, STORAGE_KEY_V3, validateV3 } from './dataV3';
 import { reduce, StoreAction } from './reducer';
-import { tickedSetCount } from './selectors';
+import { remarkFor, tickedSetCount } from './selectors';
+import { knownExerciseIds } from '../exerciseVariants';
 import { checkSwap, SwapBlockReason, SwapRequest } from './swap';
 
 export interface AppDataStoreOptions {
@@ -29,6 +30,10 @@ export type RestoreResult = { ok: true } | { ok: false; error: RestoreError };
 export type StartWeekResult = { ok: true } | { ok: false; reason: 'empty' | 'alreadyStarted' | 'savingOff' | 'saveFailed' };
 
 // updatedFromOtherTab: another tab had saved newer data, which is now shown (the page can say so)
+// saved: the remark as stored after cleaning ('' when deleted)
+export type RemarkResult =
+  | { ok: true; saved: string; updatedFromOtherTab: boolean }
+  | { ok: false; reason: 'unknownExercise' | 'savingOff' | 'saveFailed'; updatedFromOtherTab: boolean };
 export type SwapResult =
   | { ok: true; clearedTypedValues: boolean; updatedFromOtherTab: boolean }
   | { ok: false; reason: SwapBlockReason | 'savingOff' | 'saveFailed'; updatedFromOtherTab: boolean };
@@ -54,6 +59,8 @@ export interface AppDataStore {
   startNewWeek: (cycleId: string) => StartWeekResult;
   // Which exercise a slot does this week (see swap.ts), saved right away
   swapExercise: (request: SwapRequest) => SwapResult;
+  // Saves (or, with empty text, deletes) the remark of an exercise id right away
+  setRemark: (exerciseId: string, text: string) => RemarkResult;
   // Replaces everything with a backup's data (already checked with validateV3) and saves it right away
   restore: (data: AppDataV3) => RestoreResult;
   flush: () => void;
@@ -232,6 +239,15 @@ export const createAppDataStore = ({ storage, now, makeId, delay = 300 }: AppDat
       const next = reduce(state, { type: 'startNewWeek', cycleId, newId: newWeekId() }, { now: now() });
       if (next === state || !writeNow(next)) return { ok: false, reason: 'saveFailed' }; // nothing changed
       return { ok: true };
+    },
+    setRemark(exerciseId, text) {
+      if (!canSave || !storage) return { ok: false, reason: 'savingOff', updatedFromOtherTab: false };
+      if (!knownExerciseIds.has(exerciseId)) return { ok: false, reason: 'unknownExercise', updatedFromOtherTab: false };
+      // Another tab may have saved meanwhile (maybe its own remarks): keep its data and add this remark on top
+      const updatedFromOtherTab = catchUp();
+      const next = reduce(state, { type: 'setRemark', exerciseId, text }, { now: now() });
+      if (next !== state && !writeNow(next)) return { ok: false, reason: 'saveFailed', updatedFromOtherTab };
+      return { ok: true, saved: remarkFor(state, exerciseId), updatedFromOtherTab };
     },
     swapExercise(request) {
       if (!canSave || !storage) return { ok: false, reason: 'savingOff', updatedFromOtherTab: false };

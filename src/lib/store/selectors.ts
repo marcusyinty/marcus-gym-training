@@ -101,6 +101,14 @@ export const progressOfCycle = (cycle: Cycle, program: ProgramDay[]): CycleProgr
 
 export const cycleProgress = (data: AppDataV3, program: ProgramDay[]): CycleProgress => progressOfCycle(data.currentCycle, program);
 
+// The remark saved for an exercise id ('' when there is none)
+export const remarkFor = (data: AppDataV3, exerciseId: string): string =>
+  data.remarks && hasOwn(data.remarks, exerciseId) ? data.remarks[exerciseId] : '';
+
+// The remark of the exercise done in a slot this week: Day 2 and Day 5 Leg Press share one; a swapped-in
+// alternative shows its own (nothing is copied or lost by a swap)
+export const remarkForSlot = (data: AppDataV3, slotId: string): string => remarkFor(data, performedExerciseIdIn(data.currentCycle, slotId));
+
 export const isCycleComplete = (data: AppDataV3, program: ProgramDay[]): boolean => {
   const { completedSets, totalSets } = cycleProgress(data, program);
   return totalSets > 0 && completedSets === totalSets;

@@ -7,6 +7,7 @@ import { AppDataV3, BestSet, Cycle, LoggedSet, LoggedSlot } from '../model';
 import { completedSetsItem, previousBestsItem, setDetailsItem, SetDetailsByExercise } from '../savedData';
 import { backupKeyFor, safeRead, safeWrite, StorageLike } from '../storage';
 import { isAllowedInSlot } from '../exerciseVariants';
+import { cleanRemarks } from '../remarks';
 import { isCycleComplete } from './selectors';
 
 export const STORAGE_KEY_V3 = 'aesthetic_recomp_v3';
@@ -130,8 +131,22 @@ export const validateV3 = (raw: unknown): { data: AppDataV3 | null; droppedAny: 
     }
   }
 
+  // Remarks are optional: a missing field stays missing ("no remarks"); text that can't be used is dropped
+  let remarks: Record<string, string> | undefined;
+  if (raw.remarks !== undefined) {
+    if (!isPlainObject(raw.remarks)) droppedAny = true; // e.g. a hand-edited string: dropped, as if never there
+    else {
+      const checked = cleanRemarks(raw.remarks);
+      remarks = checked.remarks;
+      if (checked.dropped) droppedAny = true;
+    }
+  }
+
+  const data = { ...raw, schemaVersion: 3, currentCycle: current.value, archivedCycles, bests, reportShownCycleIds } as AppDataV3;
+  if (remarks === undefined) delete data.remarks;
+  else data.remarks = remarks;
   return {
-    data: { ...raw, schemaVersion: 3, currentCycle: current.value, archivedCycles, bests, reportShownCycleIds } as AppDataV3,
+    data,
     droppedAny,
   };
 };

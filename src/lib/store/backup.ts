@@ -26,7 +26,9 @@ export interface DataSummary {
 export type BackupError = 'tooLarge' | 'notJson' | 'wrongApp' | 'wrongVersion' | 'missingData' | 'invalidData';
 
 export type ParsedBackup =
-  | { ok: true; data: AppDataV3; exportedAt: string | null; droppedAny: boolean; summary: DataSummary }
+  // keepsCurrentRemarks: the file has no remarks field (made before remarks existed), so restoring it keeps
+  // the phone's remarks; otherwise its remarks (maybe none) replace them
+  | { ok: true; data: AppDataV3; exportedAt: string | null; droppedAny: boolean; summary: DataSummary; keepsCurrentRemarks: boolean }
   | { ok: false; error: BackupError };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -38,8 +40,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export const backupFileName = (now: Date): string =>
   `aesthetic-recomp-backup-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json`;
 
+// A backup always has a remarks field (empty when there are none), so a restore can tell it apart from a
+// backup made before remarks existed
 export const createBackupFile = (data: AppDataV3, now: Date): { fileName: string; text: string } => {
-  const file: BackupFile = { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: now.toISOString(), schemaVersion: 3, data };
+  const file: BackupFile = { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: now.toISOString(), schemaVersion: 3, data: { ...data, remarks: data.remarks ?? {} } };
   return { fileName: backupFileName(now), text: JSON.stringify(file, null, 2) };
 };
 
@@ -65,7 +69,7 @@ export const parseBackupFile = (text: string): ParsedBackup => {
   const { data, droppedAny } = validateV3(raw.data);
   if (!data) return { ok: false, error: 'invalidData' };
   const exportedAt = typeof raw.exportedAt === 'string' && !Number.isNaN(Date.parse(raw.exportedAt)) ? raw.exportedAt : null;
-  return { ok: true, data, exportedAt, droppedAny, summary: summarizeData(data) };
+  return { ok: true, data, exportedAt, droppedAny, summary: summarizeData(data), keepsCurrentRemarks: data.remarks === undefined };
 };
 
 // ---------- safety copies before a restore ----------
