@@ -102,6 +102,12 @@ export interface UiTranslations {
   verifiedBadge: string;
   totalVolumeLifted: string;
   peakLoadPerExercise: string;
+  weekLabel: (n: number) => string;
+  weekSince: (date: string) => string;
+  weekDatesUnknown: string;
+  movementsCount: (n: number) => string;
+  reportSetsTicked: (n: number) => string;
+  reportEmpty: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -213,6 +219,12 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     verifiedBadge: 'Verified Aesthetic Routine by Marcus',
     totalVolumeLifted: 'Total Volume Lifted',
     peakLoadPerExercise: 'Movement Peak Loads & Tonnage',
+    weekLabel: (n) => `Week ${n}`,
+    weekSince: (date) => `since ${date}`,
+    weekDatesUnknown: 'dates unknown',
+    movementsCount: (n) => `${n} Movements`,
+    reportSetsTicked: (n) => `${n} ${n === 1 ? 'set' : 'sets'} ✓`,
+    reportEmpty: 'No sets ticked this week yet. Tick sets as you train and this report fills in.',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -317,6 +329,12 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     verifiedBadge: 'Marcus 美学增肌认证战报',
     totalVolumeLifted: '全周总容量',
     peakLoadPerExercise: '各动作极限重量榜',
+    weekLabel: (n) => `第 ${n} 周`,
+    weekSince: (date) => `${date} 起`,
+    weekDatesUnknown: '日期未知',
+    movementsCount: (n) => `${n} 个动作`,
+    reportSetsTicked: (n) => `${n} 组 ✓`,
+    reportEmpty: '本周还没有完成的组。训练时打勾，这份战报就会自动填好。',
   },
 };
 

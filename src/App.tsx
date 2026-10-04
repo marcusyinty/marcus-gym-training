@@ -17,6 +17,7 @@ import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } fr
 import { unlockRestSound } from './lib/restAlert';
 import { completedIndexes, cycleProgress, previousBest, setDetails } from './lib/store/selectors';
 import { shouldAutoOpenReport } from './lib/store/reportAutoOpen';
+import { currentWeekNumber } from './lib/weeks';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle } from 'lucide-react';
 
@@ -64,7 +65,6 @@ export const App: React.FC = () => {
   const dayStats = progress.perDay;
   const totalProgramSets = progress.totalSets;
   const totalCompletedSets = progress.completedSets;
-  const completedDaysCount = progress.completedDays;
 
   // Auto-open the weekly report once per week: only when the week goes from incomplete to complete during
   // this session and its report was not shown before (saved in reportShownCycleIds). The refs start from
@@ -132,14 +132,6 @@ export const App: React.FC = () => {
   const handleResetActiveDay = () => dispatch({ type: 'resetDay', slotIds: activeDay.exercises.map((ex) => ex.id) });
 
   const handleResetAll = () => dispatch({ type: 'resetAll' });
-
-  // The weekly report's inputs, in the same shapes as before
-  const reportSetDetails = Object.fromEntries(
-    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, setDetails(appData, ex.id)]))
-  );
-  const reportCompletedSets = Object.fromEntries(
-    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, completedIndexes(appData, ex.id)]))
-  );
 
   const handleOpenVideoModal = (videoUrl: string, posterUrl: string, title: string) => {
     setModalState({
@@ -407,13 +399,9 @@ export const App: React.FC = () => {
         isOpen={isWeeklyReportOpen}
         lang={lang}
         days={enrichedDays}
-        setDetailsState={reportSetDetails}
-        completedSets={reportCompletedSets}
+        cycle={appData.currentCycle}
+        weekNumber={currentWeekNumber(appData)}
         weightUnit={weightUnit}
-        completedSetsCount={totalCompletedSets}
-        totalSetsCount={totalProgramSets}
-        completedDaysCount={completedDaysCount}
-        totalDaysCount={enrichedDays.length}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
     </div>
