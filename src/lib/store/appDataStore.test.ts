@@ -507,3 +507,73 @@ describe('start new week and stale tabs', () => {
     expect(stored(shared)).toEqual(backup);
   });
 });
+
+describe('swapping a slot (saved right away, stale tabs)', () => {
+  const ids = (...list: string[]) => {
+    let i = 0;
+    return () => list[i++] ?? `extra-${i}`;
+  };
+  const stored = (storage: MemoryStorage) => JSON.parse(storage.getItem(STORAGE_KEY_V3)!) as AppDataV3;
+  const request = (cycleId: string, from = 'leg-press', to = 'hack-squat') => ({ cycleId, slotId: 'leg-press', from, to });
+
+  it('a swap is saved straight away; typed values are cleared and reported', () => {
+    const storage = new MemoryStorage();
+    const store = createAppDataStore(options(storage, ids('w1')));
+    store.dispatch({ type: 'editWeight', slotId: 'leg-press', setIndex: 0, weight: '220', unit: 'kg' }); // waiting, not ticked
+    expect(store.swapExercise(request('w1'))).toEqual({ ok: true, clearedTypedValues: true, updatedFromOtherTab: false });
+    expect(stored(storage).currentCycle.slots['leg-press']).toEqual({ slotId: 'leg-press', exerciseId: 'leg-press', performedExerciseId: 'hack-squat', sets: {} });
+    vi.advanceTimersByTime(1000);
+    expect(stored(storage).currentCycle.slots['leg-press'].sets).toEqual({}); // the old waiting change never comes back
+  });
+
+  it('a stale tab cannot swap a slot that another tab ticked meanwhile', () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, ids('w1')));
+    tabA.flush();
+    tabA.dispatch(tick('squat', 0));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared));
+    tabA.dispatch(tick('leg-press', 0));
+    tabA.flush();
+    const writes = shared.writes.length;
+    // B never heard about A's tick on leg-press
+    expect(tabB.swapExercise(request('w1'))).toEqual({ ok: false, reason: 'hasTickedSets', updatedFromOtherTab: true });
+    expect([shared.writes.length, completedIndexes(tabB.getState(), 'leg-press')]).toEqual([writes, [0]]);
+  });
+
+  it('a stale tab cannot swap again what another tab already swapped, nor swap in an old week', () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, ids('w1', 'w2')));
+    tabA.dispatch(tick('squat', 0));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared));
+    expect(tabA.swapExercise(request('w1')).ok).toBe(true);
+    expect(tabB.swapExercise(request('w1'))).toEqual({ ok: false, reason: 'changedElsewhere', updatedFromOtherTab: true });
+    const tabC = createAppDataStore(options(shared));
+    expect(tabA.startNewWeek('w1')).toEqual({ ok: true });
+    expect(tabC.swapExercise(request('w1', 'hack-squat', 'leg-press'))).toEqual({ ok: false, reason: 'weekChanged', updatedFromOtherTab: true });
+    expect(stored(shared).archivedCycles.map((c) => c.slots['leg-press']?.performedExerciseId)).toEqual(['hack-squat']);
+  });
+
+  it("a waiting change of this tab is saved first; another tab's data is kept", () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, ids('w1')));
+    tabA.flush();
+    tabA.dispatch(tick('bench', 0)); // waiting in A
+    expect(tabA.swapExercise(request('w1')).ok).toBe(true);
+    expect([completedIndexes(stored(shared), 'bench'), stored(shared).currentCycle.slots['leg-press'].performedExerciseId]).toEqual([[0], 'hack-squat']);
+  });
+
+  it('refused in an error session or when storage is full; nothing changes', () => {
+    const errorStorage = new MemoryStorage({ ...V2_RECORDED });
+    const errorStore = createAppDataStore(options(errorStorage, () => { throw new Error('no ids'); }));
+    expect(errorStore.swapExercise(request(errorStore.getState().currentCycle.id))).toEqual({ ok: false, reason: 'savingOff', updatedFromOtherTab: false });
+    expect(errorStorage.writes).toEqual([]);
+    const full = new MemoryStorage();
+    const store = createAppDataStore(options(full, ids('w1')));
+    full.setItem = () => { throw new DOMException('full', 'QuotaExceededError'); };
+    const before = store.getState();
+    expect(store.swapExercise(request('w1'))).toEqual({ ok: false, reason: 'saveFailed', updatedFromOtherTab: false });
+    expect(store.getState()).toBe(before);
+  });
+});

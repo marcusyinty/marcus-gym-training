@@ -17,7 +17,8 @@ const makeId = (): string => {
 // to the v3 key 300ms after the last change, and right away when the page is hidden or closed.
 // Data saved by another open tab is adopted without writing it back, also when this page missed the news
 // (it checks again whenever it is shown). `restore` replaces everything with a backup's data (keeping a
-// safety copy of the current data first); `startNewWeek` archives the week and saves right away.
+// safety copy of the current data first); `startNewWeek` archives the week and `swapExercise` picks the
+// exercise a slot does this week, both saved right away.
 // `replacedCount` goes up whenever the data is replaced as a whole, so the weekly report doesn't pop up for
 // it; `droppedChangeCount` goes up when an unsaved change here lost to another tab's newer save.
 export function useAppData() {
@@ -59,5 +60,6 @@ export function useAppData() {
     dispatch: store.dispatch,
     restore: store.restore,
     startNewWeek: store.startNewWeek,
+    swapExercise: store.swapExercise,
   };
 }
