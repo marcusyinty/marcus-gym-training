@@ -1,15 +1,22 @@
 import React from 'react';
 import { Language, uiTranslations } from '../data/translations';
 import { updateLogs } from '../data/updates';
+import { AppDataV3 } from '../lib/model';
+import { RestoreResult } from '../lib/store/appDataStore';
+import { DataBackupSection } from './DataBackupSection';
 import { X, Dumbbell, Flame, Heart, Code, Sparkles, Clock, Rocket } from 'lucide-react';
 
 interface AboutModalProps {
   isOpen: boolean;
   lang: Language;
   onClose: () => void;
+  // For "Your data" (backup / restore)
+  data: AppDataV3;
+  savingDisabled: boolean;
+  onRestore: (data: AppDataV3) => RestoreResult;
 }
 
-export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose }) => {
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, data, savingDisabled, onRestore }) => {
   if (!isOpen) return null;
 
   const t = uiTranslations[lang];
@@ -42,6 +49,9 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose })
 
         {/* Scrollable Content Container */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 no-scrollbar my-2">
+          {/* Your data: backup file / restore */}
+          <DataBackupSection lang={lang} data={data} savingDisabled={savingDisabled} onRestore={onRestore} />
+
           {/* Core Marcus Bio Hero Card */}
           <div className="bg-[#09090b] border border-[#222227] rounded-xl p-4 relative overflow-hidden shrink-0">
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />

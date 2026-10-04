@@ -49,9 +49,11 @@ export interface UiTranslations {
   restoreButton: string;
   backupUnavailable: string;
   backupSaved: (fileName: string) => string;
+  backupFailed: string;
   restoreConfirmTitle: string;
   restoreFromFile: string;
   restoreOnPhone: string;
+  restoreOnPhoneUnreadable: string;
   restoreBackupDate: (date: string) => string;
   restoreUnknownDate: string;
   restoreCounts: (weeks: number, sets: number) => string;
@@ -154,10 +156,12 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     restoreButton: 'Restore from backup',
     backupUnavailable:
       "Backup is off for now: your saved workouts couldn't be read, so the file would be empty. You can still restore a backup.",
-    backupSaved: (fileName) => `Saved ${fileName}. Look for it in your Downloads.`,
+    backupSaved: (fileName) => `Backup file ${fileName} created. Look for it in your Downloads.`,
+    backupFailed: "The backup file couldn't be created.",
     restoreConfirmTitle: 'Replace the data on this phone?',
     restoreFromFile: 'Backup file',
     restoreOnPhone: 'On this phone now',
+    restoreOnPhoneUnreadable: "Couldn't be read",
     restoreBackupDate: (date) => `Made ${date}`,
     restoreUnknownDate: 'Date unknown',
     restoreCounts: (weeks, sets) => `${weeks} ${weeks === 1 ? 'week' : 'weeks'} · ${sets} ticked ${sets === 1 ? 'set' : 'sets'}`,
@@ -258,10 +262,12 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     backupButton: '备份我的数据',
     restoreButton: '从备份恢复',
     backupUnavailable: '暂时无法备份：已保存的训练记录无法读取，备份文件会是空的。您仍然可以从备份恢复。',
-    backupSaved: (fileName) => `已保存 ${fileName}，请在“下载”中查看。`,
+    backupSaved: (fileName) => `已生成备份文件 ${fileName}，请在“下载”中查看。`,
+    backupFailed: '无法生成备份文件。',
     restoreConfirmTitle: '用备份替换这台手机上的数据？',
     restoreFromFile: '备份文件',
     restoreOnPhone: '这台手机上现有',
+    restoreOnPhoneUnreadable: '无法读取',
     restoreBackupDate: (date) => `备份时间：${date}`,
     restoreUnknownDate: '备份时间未知',
     restoreCounts: (weeks, sets) => `${weeks} 周 · ${sets} 组已完成`,

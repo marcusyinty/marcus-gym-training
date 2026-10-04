@@ -28,7 +28,7 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, savingDisabled, replacedCount, dispatch } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, dispatch, restore } = useAppData();
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -397,6 +397,9 @@ export const App: React.FC = () => {
         isOpen={isAboutOpen}
         lang={lang}
         onClose={() => setIsAboutOpen(false)}
+        data={appData}
+        savingDisabled={savingDisabled}
+        onRestore={restore}
       />
 
       {/* Weekly Report Summary Modal with Load/Volume Breakdown & PNG Export */}
