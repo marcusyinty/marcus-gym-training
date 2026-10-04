@@ -9,15 +9,18 @@ import { AboutModal } from './components/AboutModal';
 import { ProgramNotice } from './components/ProgramNotice';
 import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
+import { HistoryModal } from './components/HistoryModal';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
 import { useAppData } from './hooks/useAppData';
 import { languageItem, restSoundItem, weightUnitItem } from './lib/savedData';
 import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
 import { unlockRestSound } from './lib/restAlert';
-import { completedIndexes, cycleProgress, previousBest, setDetails } from './lib/store/selectors';
+import { completedIndexes, cycleProgress, previousBest, setDetails, tickedSetCount } from './lib/store/selectors';
+import { shouldAutoOpenReport } from './lib/store/reportAutoOpen';
+import { currentWeekNumber } from './lib/weeks';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle, RefreshCw, X } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
 
@@ -27,10 +30,15 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, source: dataSource, dispatch } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek } = useAppData();
+  // A short notice when another tab's newer save replaced something here (see appDataStore)
+  const [tabNotice, setTabNotice] = useState<'droppedChange' | 'weekStartedElsewhere' | null>(null);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  // The archived week whose report is open (index in archivedCycles), or null
+  const [pastWeekIndex, setPastWeekIndex] = useState<number | null>(null);
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
   const [isDayDescExpanded, setIsDayDescExpanded] = useState<boolean>(false);
   // Rest timer between sets: kept in memory only (a reload loses it); `id` gives every new rest its own bar
@@ -63,23 +71,45 @@ export const App: React.FC = () => {
   const dayStats = progress.perDay;
   const totalProgramSets = progress.totalSets;
   const totalCompletedSets = progress.completedSets;
-  const completedDaysCount = progress.completedDays;
 
   // Auto-open the weekly report once per week: only when the week goes from incomplete to complete during
-  // this session and its report was not shown before (saved in reportShownCycleIds). The ref starts from
-  // the loaded data, so a page load never counts as a change.
+  // this session and its report was not shown before (saved in reportShownCycleIds). The refs start from
+  // the loaded data, so a page load never counts as a change; data replaced as a whole (restored backup,
+  // another tab's save) never opens it either.
   const isWeekComplete = totalProgramSets > 0 && totalCompletedSets === totalProgramSets;
   const wasWeekCompleteRef = useRef(isWeekComplete);
+  const lastReplacedCountRef = useRef(replacedCount);
   const currentCycleId = appData.currentCycle.id;
   const isReportAlreadyShown = appData.reportShownCycleIds.includes(currentCycleId);
 
   useEffect(() => {
-    if (isWeekComplete && !wasWeekCompleteRef.current && !isReportAlreadyShown) {
+    const open = shouldAutoOpenReport({
+      wasComplete: wasWeekCompleteRef.current,
+      isComplete: isWeekComplete,
+      alreadyShown: isReportAlreadyShown,
+      dataReplaced: replacedCount !== lastReplacedCountRef.current,
+    });
+    if (open) {
       setIsWeeklyReportOpen(true);
       dispatch({ type: 'markReportShown', cycleId: currentCycleId });
     }
     wasWeekCompleteRef.current = isWeekComplete;
-  }, [isWeekComplete]);
+    lastReplacedCountRef.current = replacedCount;
+  }, [isWeekComplete, replacedCount]);
+
+  // An unsaved change here lost to another tab's newer save: say so instead of letting it vanish silently
+  const lastDroppedCountRef = useRef(droppedChangeCount);
+  useEffect(() => {
+    if (droppedChangeCount !== lastDroppedCountRef.current) setTabNotice('droppedChange');
+    lastDroppedCountRef.current = droppedChangeCount;
+  }, [droppedChangeCount]);
+
+  // The notice goes away by itself after a while (or with its close button)
+  useEffect(() => {
+    if (!tabNotice) return;
+    const timer = setTimeout(() => setTabNotice(null), 12000);
+    return () => clearTimeout(timer);
+  }, [tabNotice]);
 
   // Handler: Toggle set completion
   // Starts the rest after a tick. Only the user's tap reaches this, so loading, other-tab sync and
@@ -123,13 +153,22 @@ export const App: React.FC = () => {
 
   const handleResetAll = () => dispatch({ type: 'resetAll' });
 
-  // The weekly report's inputs, in the same shapes as before
-  const reportSetDetails = Object.fromEntries(
-    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, setDetails(appData, ex.id)]))
-  );
-  const reportCompletedSets = Object.fromEntries(
-    enrichedDays.flatMap((day) => day.exercises.map((ex) => [ex.id, completedIndexes(appData, ex.id)]))
-  );
+  // Start new week (from the weekly report): archive this week, then a fresh Day 1 with no rest running.
+  // Only for the week on screen; if another tab already started a new week, that one is shown instead.
+  // The past week being viewed; gone if the history changed meanwhile (e.g. a restore in another tab)
+  const pastWeek = pastWeekIndex !== null ? appData.archivedCycles[pastWeekIndex] ?? null : null;
+
+  const startNewWeekAvailability = savingDisabled ? 'savingOff' : tickedSetCount(appData.currentCycle) === 0 ? 'empty' : 'ready';
+  const handleStartNewWeek = () => {
+    const result = startNewWeek(appData.currentCycle.id);
+    if (result.ok || result.reason === 'alreadyStarted') {
+      setIsWeeklyReportOpen(false);
+      setActiveDayId(enrichedDays[0].id);
+      setRestTimer(null);
+      if (!result.ok) setTabNotice('weekStartedElsewhere');
+    }
+    return result;
+  };
 
   const handleOpenVideoModal = (videoUrl: string, posterUrl: string, title: string) => {
     setModalState({
@@ -174,14 +213,35 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl mx-auto px-4 pt-3 pb-6 md:pt-6 w-full">
-        {/* Saved workouts could not be read: the app runs in memory and saves nothing this session */}
-        {dataSource === 'error' && (
+        {/* Saved workouts could not be read: the app runs in memory and saves nothing this session
+            (until a backup is restored) */}
+        {savingDisabled && (
           <div
             role="status"
             className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-snug text-amber-200"
           >
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
             <span>{t.storageErrorBanner}</span>
+          </div>
+        )}
+
+        {/* Another tab's newer save replaced something here (a dropped change, or a week started there) */}
+        {tabNotice && (
+          <div
+            role="status"
+            data-tab-notice
+            className="mb-3 flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 pl-3 text-xs leading-snug text-sky-100"
+          >
+            <RefreshCw className="w-4 h-4 shrink-0 text-sky-300" />
+            <span className="flex-1 py-2">{tabNotice === 'droppedChange' ? t.updatedFromOtherTab : t.weekStartedElsewhere}</span>
+            <button
+              type="button"
+              onClick={() => setTabNotice(null)}
+              aria-label={t.dismissNotice}
+              className="w-11 h-11 shrink-0 flex items-center justify-center text-sky-200 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -386,6 +446,25 @@ export const App: React.FC = () => {
         isOpen={isAboutOpen}
         lang={lang}
         onClose={() => setIsAboutOpen(false)}
+        data={appData}
+        savingDisabled={savingDisabled}
+        onRestore={restore}
+        onOpenHistory={() => {
+          setIsAboutOpen(false);
+          setIsHistoryOpen(true);
+        }}
+      />
+
+      {/* Past weeks (opened from About → Your data) */}
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        lang={lang}
+        data={appData}
+        days={enrichedDays}
+        weightUnit={weightUnit}
+        savingDisabled={savingDisabled}
+        onOpenWeek={setPastWeekIndex}
+        onClose={() => setIsHistoryOpen(false)}
       />
 
       {/* Weekly Report Summary Modal with Load/Volume Breakdown & PNG Export */}
@@ -393,15 +472,26 @@ export const App: React.FC = () => {
         isOpen={isWeeklyReportOpen}
         lang={lang}
         days={enrichedDays}
-        setDetailsState={reportSetDetails}
-        completedSets={reportCompletedSets}
+        cycle={appData.currentCycle}
+        weekNumber={currentWeekNumber(appData)}
         weightUnit={weightUnit}
-        completedSetsCount={totalCompletedSets}
-        totalSetsCount={totalProgramSets}
-        completedDaysCount={completedDaysCount}
-        totalDaysCount={enrichedDays.length}
+        startNewWeek={{ availability: startNewWeekAvailability, onConfirm: handleStartNewWeek }}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
+
+      {/* A past week's report, read-only, on top of the history list (closing it goes back to the list) */}
+      {pastWeek && (
+        <WeeklyReportModal
+          isOpen
+          lang={lang}
+          days={enrichedDays}
+          cycle={pastWeek}
+          weekNumber={(pastWeekIndex ?? 0) + 1}
+          weightUnit={weightUnit}
+          startNewWeek={{ availability: 'pastWeek', onConfirm: () => ({ ok: false, reason: 'savingOff' }) }}
+          onClose={() => setPastWeekIndex(null)}
+        />
+      )}
     </div>
   );
 };

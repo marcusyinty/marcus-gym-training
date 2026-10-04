@@ -1,11 +1,10 @@
 // The one place that changes AppDataV3, following exactly today's rules (ticks, weights, reps, units,
-// bests, resets). Pure: every change returns a new object and the input is never mutated.
-// Not used by the app yet.
+// bests, resets, weeks). Pure: every change returns a new object and the input is never mutated.
 import { isNewBest } from '../bestSet';
 import { exerciseIdForSlotId } from '../exerciseIds';
 import { AppDataV3, LoggedSet, LoggedSlot } from '../model';
 import { WeightUnit, withRepsEdit, withWeightEdit } from '../units';
-import { hasDetail } from './selectors';
+import { hasDetail, tickedSetCount } from './selectors';
 
 export type SetTag = 'easy' | 'good' | 'max';
 
@@ -17,7 +16,11 @@ export type StoreAction =
   | { type: 'setTag'; slotId: string; setIndex: number; tag: SetTag | null }
   | { type: 'resetDay'; slotIds: string[] }
   | { type: 'resetAll' }
-  | { type: 'markReportShown'; cycleId: string };
+  | { type: 'markReportShown'; cycleId: string }
+  // a restored backup (already checked with validateV3) replaces everything
+  | { type: 'replaceAll'; data: AppDataV3 }
+  // cycleId: the week the user was looking at; newId: the id for the new empty week
+  | { type: 'startNewWeek'; cycleId: string; newId: string };
 
 export interface ReducerContext {
   now: Date;
@@ -108,7 +111,26 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
     }
 
     case 'resetAll':
+      // Current cycle only, same as resetDay: archived cycles and bests are never touched
       return { ...state, currentCycle: { ...state.currentCycle, slots: {} } };
+
+    case 'replaceAll':
+      return { ...action.data };
+
+    case 'startNewWeek': {
+      // Nothing happens unless the user's week is still the current one (another tab may have moved on),
+      // the week has at least one ticked set (empty weeks are never archived) and the new id is unused.
+      // Bests and reportShownCycleIds stay exactly as they are.
+      const current = state.currentCycle;
+      const idTaken = action.newId === current.id || state.archivedCycles.some((cycle) => cycle.id === action.newId);
+      if (current.id !== action.cycleId || tickedSetCount(current) === 0 || idTaken) return state;
+      const now = ctx.now.toISOString();
+      return {
+        ...state,
+        archivedCycles: [...state.archivedCycles, { ...current, endedAt: now }],
+        currentCycle: { id: action.newId, startedAt: now, slots: {} },
+      };
+    }
 
     case 'markReportShown':
       if (state.reportShownCycleIds.includes(action.cycleId)) return state;

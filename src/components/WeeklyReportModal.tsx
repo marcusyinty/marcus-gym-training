@@ -1,37 +1,53 @@
 import React, { useRef, useState } from 'react';
-import { EnrichedWorkoutDay, SetDetail } from '../types/workout';
-import { Language, uiTranslations, dayTranslationsZh, exerciseTranslationsZh } from '../data/translations';
+import { EnrichedWorkoutDay } from '../types/workout';
+import { Language, uiTranslations, dayTranslationsZh, exerciseTranslationsZh, UiTranslations } from '../data/translations';
 import { toPng } from 'html-to-image';
-import { convertWeight, displayWeight, parseNumber, toKg, WeightUnit } from '../lib/units';
-import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale, Dumbbell as WeightIcon } from 'lucide-react';
+import { Cycle } from '../lib/model';
+import { StartWeekResult } from '../lib/store/appDataStore';
+import { WeightUnit } from '../lib/units';
+import { StartNewWeek, StartNewWeekAvailability } from './StartNewWeek';
+import { buildWeeklyReport, TopSet } from '../lib/weeklyReport';
+import { formatDay, formatDayRange, localDateStamp } from '../lib/weeks';
+import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale } from 'lucide-react';
 
 interface WeeklyReportModalProps {
   isOpen: boolean;
   lang: Language;
   days: EnrichedWorkoutDay[];
-  setDetailsState: Record<string, Record<number, SetDetail>>;
-  completedSets: Record<string, number[]>;
+  // The week to report on: the current one or an archived one
+  cycle: Cycle;
+  weekNumber: number;
   weightUnit: WeightUnit;
-  completedSetsCount: number;
-  totalSetsCount: number;
-  completedDaysCount: number;
-  totalDaysCount: number;
+  startNewWeek: { availability: StartNewWeekAvailability; onConfirm: () => StartWeekResult };
   onClose: () => void;
 }
 
-export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
-  isOpen,
-  lang,
-  days,
-  setDetailsState,
-  completedSets,
-  weightUnit,
-  completedSetsCount,
-  totalSetsCount,
-  completedDaysCount,
-  totalDaysCount,
-  onClose,
-}) => {
+// "Week 3 · 28 Sept – 4 Oct 2026" for a finished week, "Week 3 · since 28 Sept 2026" for the current one
+const weekCaption = (cycle: Cycle, weekNumber: number, lang: Language, t: UiTranslations) => {
+  const dates = cycle.endedAt
+    ? formatDayRange(cycle.startedAt, cycle.endedAt, lang)
+    : (() => {
+        const start = formatDay(cycle.startedAt, lang);
+        return start ? t.weekSince(start) : null;
+      })();
+  return `${t.weekLabel(weekNumber)} · ${dates ?? t.weekDatesUnknown}`;
+};
+
+// The best ticked set as text: "62.5 kg × 6", "BW × 12", "3 sets ✓", or "—" when nothing was ticked
+const topSetText = (top: TopSet, unit: WeightUnit, t: UiTranslations) => {
+  switch (top.kind) {
+    case 'none':
+      return '—';
+    case 'ticked':
+      return t.reportSetsTicked(top.sets);
+    case 'bodyweight':
+      return `BW × ${top.reps}`;
+    case 'weight':
+      return top.reps > 0 ? `${top.weightText} ${unit} × ${top.reps}` : `${top.weightText} ${unit}`;
+  }
+};
+
+export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, lang, days, cycle, weekNumber, weightUnit, startNewWeek, onClose }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -39,77 +55,24 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
   if (!isOpen) return null;
 
   const t = uiTranslations[lang];
-  const currentDate = new Date().toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const caption = weekCaption(cycle, weekNumber, lang, t);
 
-  const progressPercent = totalSetsCount > 0 ? Math.round((completedSetsCount / totalSetsCount) * 100) : 0;
+  // All numbers come from the shared report rules (only ticked sets; volume in the current unit)
+  const report = buildWeeklyReport(cycle, days, weightUnit);
+  const progressPercent = report.totalSets > 0 ? Math.round((report.completedSets / report.totalSets) * 100) : 0;
+  const isEmptyWeek = report.tickedSets === 0;
 
-  // Calculate total tonnage and extract exercise load summaries, all in the current weight unit
-  let grandTotalTonnage = 0;
-
-  const dayExerciseSummaries = days.map((day) => {
+  const dayExerciseSummaries = days.map((day, dayIndex) => {
     const zhDay = dayTranslationsZh[day.id];
-    const dayTitle = lang === 'zh' && zhDay ? zhDay.title : day.title;
-
-    const exercises = day.exercises.map((ex) => {
-      const zhEx = exerciseTranslationsZh[ex.id];
-      const name = lang === 'zh' && zhEx ? zhEx.name : ex.name;
-
-      const detailsMap = setDetailsState[ex.id] || {};
-      const setKeys = Object.keys(detailsMap);
-      // Only ticked sets count toward volume and top weight
-      const doneSetIndexes = completedSets[ex.id] || [];
-
-      let maxWeightKg = 0;
-      let maxWeightText = '';
-      let maxReps = 0;
-      let exerciseTonnage = 0;
-
-      if (setKeys.length > 0) {
-        setKeys.forEach((key) => {
-          const setIndex = parseInt(key, 10);
-          const detail = detailsMap[setIndex];
-          if (detail && doneSetIndexes.includes(setIndex)) {
-            // Each set keeps the unit it was typed in: compare tops in kg, add volume in the current unit
-            const w = parseNumber(detail.weight) ?? 0;
-            const r = parseFloat(detail.reps || '0') || 0;
-            const wKg = toKg(w, detail.unit);
-
-            if (wKg > maxWeightKg) {
-              maxWeightKg = wKg;
-              maxWeightText = displayWeight(detail.weight, detail.unit, weightUnit);
-              maxReps = r;
-            } else if (wKg === maxWeightKg && r > maxReps) {
-              maxReps = r;
-            }
-
-            exerciseTonnage += convertWeight(w, detail.unit, weightUnit) * r;
-          }
-        });
-      }
-
-      grandTotalTonnage += exerciseTonnage;
-
-      const isBodyweight = maxWeightKg === 0;
-
-      return {
-        id: ex.id,
-        name,
-        maxWeightText,
-        maxReps: maxReps || 12,
-        exerciseTonnage,
-        isBodyweight,
-      };
-    });
-
     return {
       dayId: day.id,
       dayNumber: day.dayNumber,
-      dayTitle,
-      exercises,
+      dayTitle: lang === 'zh' && zhDay ? zhDay.title : day.title,
+      exercises: day.exercises.map((ex, exerciseIndex) => {
+        const zhEx = exerciseTranslationsZh[ex.id];
+        const { top } = report.days[dayIndex].exercises[exerciseIndex];
+        return { id: ex.id, name: lang === 'zh' && zhEx ? zhEx.name : ex.name, topText: topSetText(top, weightUnit, t), ticked: top.kind !== 'none' };
+      }),
     };
   });
 
@@ -125,7 +88,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
         backgroundColor: '#09090b',
       });
 
-      const dateStr = new Date().toISOString().split('T')[0];
+      // A past week is named after its own start day; the current week after today (as before)
+      const dateStr = (cycle.endedAt ? localDateStamp(cycle.startedAt) : null) ?? new Date().toISOString().split('T')[0];
       const filename = `marcus-weekly-summary-${dateStr}.png`;
 
       const link = document.createElement('a');
@@ -181,7 +145,6 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
               </div>
 
               <div className="text-right">
-                <span className="text-[9px] font-mono text-zinc-500 block">{currentDate}</span>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                   {progressPercent}% Cleared
                 </span>
@@ -195,6 +158,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                 {t.weeklyReportTitle}
               </h2>
               <p className="text-xs text-emerald-400 font-semibold mt-0.5">{t.weeklyReportSub}</p>
+              {/* Which week this is (centred, so it is never cut off on a narrow phone) */}
+              <p data-week-caption className="text-xs text-zinc-300 font-semibold mt-1.5">{caption}</p>
             </div>
 
             {/* Performance Metrics Grid (Including Total Tonnage) */}
@@ -204,7 +169,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                   {t.daysCleared}
                 </span>
                 <span className="text-base font-black text-white font-mono mt-0.5 block">
-                  {completedDaysCount}/{totalDaysCount}
+                  {report.completedDays}/{report.totalDays}
                 </span>
               </div>
 
@@ -213,7 +178,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                   {t.totalSetsLogged}
                 </span>
                 <span className="text-base font-black text-emerald-400 font-mono mt-0.5 block">
-                  {completedSetsCount}/{totalSetsCount}
+                  {report.completedSets}/{report.totalSets}
                 </span>
               </div>
 
@@ -221,8 +186,9 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                 <span className="text-[8px] font-bold uppercase tracking-wider text-zinc-500 block">
                   {t.movementsMastered}
                 </span>
+                {/* Exercises with every set ticked, out of all exercises in the program */}
                 <span className="text-base font-black text-cyan-400 font-mono mt-0.5 block">
-                  26 Ex
+                  {report.doneExercises}/{report.totalExercises}
                 </span>
               </div>
 
@@ -232,20 +198,25 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                   {t.totalVolumeLifted}
                 </span>
                 <span className="text-base font-black text-white font-mono mt-0.5 block">
-                  {grandTotalTonnage > 0 ? `${Math.round(grandTotalTonnage).toLocaleString()} ${weightUnit}` : '89 Sets'}
+                  {report.totalVolume > 0 ? `${Math.round(report.totalVolume).toLocaleString()} ${weightUnit}` : '—'}
                 </span>
               </div>
             </div>
 
-            {/* High-Density 26-Exercise Peak Load Breakdown */}
+            {/* Peak load per exercise, for every exercise in the program */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1">
                   <Scale className="w-3.5 h-3.5 text-emerald-400" /> {t.peakLoadPerExercise}
                 </span>
-                <span className="text-[9px] text-zinc-500 font-mono">26 Movements</span>
+                <span className="text-[9px] text-zinc-500 font-mono">{t.movementsCount(report.totalExercises)}</span>
               </div>
 
+              {isEmptyWeek ? (
+                <p className="bg-[#111114] border border-dashed border-[#2a2a31] rounded-xl px-3 py-6 text-center text-xs text-zinc-400 leading-relaxed">
+                  {t.reportEmpty}
+                </p>
+              ) : (
               <div className="space-y-2.5">
                 {dayExerciseSummaries.map((day) => (
                   <div key={day.dayId} className="bg-[#111114] border border-[#222227] rounded-xl p-2.5">
@@ -262,10 +233,12 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                           <span className="text-zinc-300 font-medium truncate max-w-[170px]" title={ex.name}>
                             {ex.name}
                           </span>
-                          <span className="font-mono font-bold text-emerald-300 shrink-0 text-[10px] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            {ex.isBodyweight
-                              ? `BW × ${ex.maxReps}`
-                              : `${ex.maxWeightText} ${weightUnit} × ${ex.maxReps}`}
+                          <span
+                            className={`font-mono font-bold shrink-0 text-[10px] px-1.5 py-0.5 rounded border ${
+                              ex.ticked ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 border-transparent'
+                            }`}
+                          >
+                            {ex.topText}
                           </span>
                         </div>
                       ))}
@@ -273,6 +246,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
                   </div>
                 ))}
               </div>
+              )}
             </div>
 
             {/* Quote / Coaching Note */}
@@ -319,6 +293,15 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({
               </>
             )}
           </button>
+
+          {/* Finish this week: archive it and start an empty one (or why that isn't possible here) */}
+          <StartNewWeek
+            lang={lang}
+            availability={startNewWeek.availability}
+            weekNumber={weekNumber}
+            tickedSets={report.tickedSets}
+            onConfirm={startNewWeek.onConfirm}
+          />
         </div>
       </div>
     </div>

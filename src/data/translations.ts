@@ -43,6 +43,36 @@ export interface UiTranslations {
   soundOn: string;
   soundOff: string;
   storageErrorBanner: string;
+  dataSectionTitle: string;
+  dataSectionText: string;
+  backupButton: string;
+  restoreButton: string;
+  backupUnavailable: string;
+  backupSaved: (fileName: string) => string;
+  backupFailed: string;
+  restoreConfirmTitle: string;
+  restoreFromFile: string;
+  restoreOnPhone: string;
+  restoreOnPhoneUnreadable: string;
+  restoreBackupDate: (date: string) => string;
+  restoreUnknownDate: string;
+  restoreCounts: (weeks: number, sets: number) => string;
+  restoreDropped: string;
+  restoreWarning: string;
+  restoreConfirmButton: string;
+  restoreDone: string;
+  restoreErrors: {
+    tooLarge: string;
+    notJson: string;
+    wrongApp: string;
+    wrongVersion: string;
+    missingData: string;
+    invalidData: string;
+    readFailed: string;
+    safetyCopyFailed: string;
+    saveFailed: string;
+    noStorage: string;
+  };
   dayCompleteTitle: (dayNum: number) => string;
   dayCompleteText: (dayTitle: string) => string;
   footerTitle: string;
@@ -72,6 +102,29 @@ export interface UiTranslations {
   verifiedBadge: string;
   totalVolumeLifted: string;
   peakLoadPerExercise: string;
+  weekLabel: (n: number) => string;
+  weekSince: (date: string) => string;
+  weekDatesUnknown: string;
+  movementsCount: (n: number) => string;
+  reportSetsTicked: (n: number) => string;
+  reportEmpty: string;
+  startNewWeekButton: string;
+  startNewWeekTitle: string;
+  startNewWeekText: string;
+  startNewWeekSummary: (week: number, sets: number) => string;
+  startNewWeekEmpty: string;
+  startNewWeekSavingOff: string;
+  startNewWeekPastWeek: string;
+  startNewWeekFailed: string;
+  updatedFromOtherTab: string;
+  weekStartedElsewhere: string;
+  dismissNotice: string;
+  pastWeeksButton: (n: number) => string;
+  historyTitle: string;
+  historyEmpty: string;
+  historyEmptyHint: string;
+  historyUnreadable: string;
+  historyRowSets: (n: number) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -85,9 +138,9 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setsCompleted: 'Sets',
     resetDay: 'Reset Day',
     resetModalTitle: 'Reset Workout Memory?',
-    resetModalText: 'Choose to reset completed sets for current day or clear all program logs to start a new training week.',
+    resetModalText: 'Clear the current day, or all 5 days, of this week only. Your past weeks in history and your personal bests are not affected.',
     resetCurrentDayBtn: 'Clear Current Day Progress',
-    resetAllDaysBtn: 'Clear All 5 Days (Full Program Reset)',
+    resetAllDaysBtn: 'Clear All 5 Days (this week only)',
     cancel: 'Cancel',
     dayRoutineTitle: (dayNum) => `Day ${dayNum} Routine`,
     exercisesPrescribed: (count) => `${count} Exercises Prescribed`,
@@ -120,6 +173,37 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     soundOff: 'Sound off',
     storageErrorBanner:
       "We couldn't read your saved workouts, so nothing will be saved this session. Your data is not deleted. Please reload.",
+    dataSectionTitle: 'Your data',
+    dataSectionText: 'Your workouts are saved only on this phone. Save a backup file now and then.',
+    backupButton: 'Back up my data',
+    restoreButton: 'Restore from backup',
+    backupUnavailable:
+      "Backup is off for now: your saved workouts couldn't be read, so the file would be empty. You can still restore a backup.",
+    backupSaved: (fileName) => `Backup file ${fileName} created. Look for it in your Downloads.`,
+    backupFailed: "The backup file couldn't be created.",
+    restoreConfirmTitle: 'Replace the data on this phone?',
+    restoreFromFile: 'Backup file',
+    restoreOnPhone: 'On this phone now',
+    restoreOnPhoneUnreadable: "Couldn't be read",
+    restoreBackupDate: (date) => `Made ${date}`,
+    restoreUnknownDate: 'Date unknown',
+    restoreCounts: (weeks, sets) => `${weeks} ${weeks === 1 ? 'week' : 'weeks'} · ${sets} ticked ${sets === 1 ? 'set' : 'sets'}`,
+    restoreDropped: "Some damaged parts of the file can't be used and will be left out.",
+    restoreWarning: 'This replaces the workout data now on this phone. A safety copy of the current data is kept on this phone.',
+    restoreConfirmButton: 'Replace my data',
+    restoreDone: 'Done! Your workouts were restored from the backup.',
+    restoreErrors: {
+      tooLarge: 'This file is too large (over 5 MB) to be a backup.',
+      notJson: "This file can't be read as a backup.",
+      wrongApp: "This file isn't a backup from this app.",
+      wrongVersion: 'This backup comes from an unknown version of the app.',
+      missingData: 'This backup file contains no workout data.',
+      invalidData: "The workout data in this file can't be used.",
+      readFailed: "The file couldn't be opened.",
+      safetyCopyFailed: "A safety copy of your current data couldn't be saved, so nothing was changed.",
+      saveFailed: "The restored data couldn't be saved on this phone, so nothing was changed.",
+      noStorage: 'This browser blocks saving data, so nothing was changed.',
+    },
     dayCompleteTitle: (dayNum) => `Day ${dayNum} Complete! 🎉`,
     dayCompleteText: (dayTitle) =>
       `Outstanding work on ${dayTitle}. Fuel up with protein and rest up for your next training session.`,
@@ -152,6 +236,29 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     verifiedBadge: 'Verified Aesthetic Routine by Marcus',
     totalVolumeLifted: 'Total Volume Lifted',
     peakLoadPerExercise: 'Movement Peak Loads & Tonnage',
+    weekLabel: (n) => `Week ${n}`,
+    weekSince: (date) => `since ${date}`,
+    weekDatesUnknown: 'dates unknown',
+    movementsCount: (n) => `${n} Movements`,
+    reportSetsTicked: (n) => `${n} ${n === 1 ? 'set' : 'sets'} ✓`,
+    reportEmpty: 'No sets ticked this week yet. Tick sets as you train and this report fills in.',
+    startNewWeekButton: 'Start new week',
+    startNewWeekTitle: 'Start a new week?',
+    startNewWeekText: 'This week will be saved to your history. A new empty week begins. Your personal bests are kept.',
+    startNewWeekSummary: (week, sets) => `Week ${week} · ${sets} ticked ${sets === 1 ? 'set' : 'sets'}`,
+    startNewWeekEmpty: 'Nothing to save this week yet. Tick at least one set first.',
+    startNewWeekSavingOff: "Saving is off right now (your saved workouts couldn't be read), so a new week can't be started.",
+    startNewWeekPastWeek: "This is a past week from your history. It can't be changed.",
+    startNewWeekFailed: "The new week couldn't be saved on this phone, so nothing was changed.",
+    updatedFromOtherTab: "Updated from another tab. Your last change here wasn't saved.",
+    weekStartedElsewhere: 'Updated from another tab: a new week was already started there.',
+    dismissNotice: 'Dismiss',
+    pastWeeksButton: (n) => `Past weeks (${n})`,
+    historyTitle: 'Past weeks',
+    historyEmpty: 'No past weeks yet',
+    historyEmptyHint: 'When you start a new week, the finished week appears here.',
+    historyUnreadable: "Your saved weeks couldn't be read right now, so they can't be shown.",
+    historyRowSets: (n) => `${n} ticked ${n === 1 ? 'set' : 'sets'}`,
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -162,9 +269,9 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setsCompleted: '组数',
     resetDay: '重置本日',
     resetModalTitle: '重置训练记录？',
-    resetModalText: '您可以重置当前训练日的完成进度，或清空全部5天记录开启新一轮周期。',
+    resetModalText: '可清空当前训练日，或清空本周全部5天的记录（仅限本周）。历史中的过去周和您的个人最佳记录不受影响。',
     resetCurrentDayBtn: '清空本日进度',
-    resetAllDaysBtn: '重置全部5天 (开启新周期)',
+    resetAllDaysBtn: '清空本周全部5天（仅限本周）',
     cancel: '取消',
     dayRoutineTitle: (dayNum) => `第 ${dayNum} 天训练`,
     exercisesPrescribed: (count) => `包含 ${count} 项动作`,
@@ -196,6 +303,36 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     soundOn: '声音开',
     soundOff: '声音关',
     storageErrorBanner: '无法读取已保存的训练记录，本次使用期间不会保存任何内容。您的数据没有被删除，请刷新页面。',
+    dataSectionTitle: '我的数据',
+    dataSectionText: '训练记录只保存在这台手机上。请不时保存一份备份文件。',
+    backupButton: '备份我的数据',
+    restoreButton: '从备份恢复',
+    backupUnavailable: '暂时无法备份：已保存的训练记录无法读取，备份文件会是空的。您仍然可以从备份恢复。',
+    backupSaved: (fileName) => `已生成备份文件 ${fileName}，请在“下载”中查看。`,
+    backupFailed: '无法生成备份文件。',
+    restoreConfirmTitle: '用备份替换这台手机上的数据？',
+    restoreFromFile: '备份文件',
+    restoreOnPhone: '这台手机上现有',
+    restoreOnPhoneUnreadable: '无法读取',
+    restoreBackupDate: (date) => `备份时间：${date}`,
+    restoreUnknownDate: '备份时间未知',
+    restoreCounts: (weeks, sets) => `${weeks} 周 · ${sets} 组已完成`,
+    restoreDropped: '文件中有部分损坏的内容无法使用，将被略过。',
+    restoreWarning: '这会替换这台手机上现有的训练数据。当前数据会在手机上保留一份安全副本。',
+    restoreConfirmButton: '替换我的数据',
+    restoreDone: '完成！训练记录已从备份恢复。',
+    restoreErrors: {
+      tooLarge: '文件太大（超过 5 MB），不是有效的备份。',
+      notJson: '无法读取这个文件，它不是有效的备份。',
+      wrongApp: '这个文件不是本应用的备份。',
+      wrongVersion: '这个备份来自未知版本的应用。',
+      missingData: '这个备份文件里没有训练数据。',
+      invalidData: '文件中的训练数据无法使用。',
+      readFailed: '无法打开这个文件。',
+      safetyCopyFailed: '无法保存当前数据的安全副本，因此没有做任何更改。',
+      saveFailed: '无法在这台手机上保存恢复的数据，因此没有做任何更改。',
+      noStorage: '此浏览器禁止保存数据，因此没有做任何更改。',
+    },
     dayCompleteTitle: (dayNum) => `第 ${dayNum} 天训练打卡完成！🎉`,
     dayCompleteText: (dayTitle) => `【${dayTitle}】训练顺利完成！及时补充蛋白质与碳水，保持充足休息。`,
     footerTitle: 'Marcus 5天美学形体增肌训练系统',
@@ -226,6 +363,29 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     verifiedBadge: 'Marcus 美学增肌认证战报',
     totalVolumeLifted: '全周总容量',
     peakLoadPerExercise: '各动作极限重量榜',
+    weekLabel: (n) => `第 ${n} 周`,
+    weekSince: (date) => `${date} 起`,
+    weekDatesUnknown: '日期未知',
+    movementsCount: (n) => `${n} 个动作`,
+    reportSetsTicked: (n) => `${n} 组 ✓`,
+    reportEmpty: '本周还没有完成的组。训练时打勾，这份战报就会自动填好。',
+    startNewWeekButton: '开始新的一周',
+    startNewWeekTitle: '开始新的一周？',
+    startNewWeekText: '本周记录将保存到历史中，新的一周从空白开始。您的个人最佳记录会保留。',
+    startNewWeekSummary: (week, sets) => `第 ${week} 周 · ${sets} 组已完成`,
+    startNewWeekEmpty: '本周还没有可保存的内容。请先完成至少一组。',
+    startNewWeekSavingOff: '目前无法保存（已保存的训练记录无法读取），因此不能开始新的一周。',
+    startNewWeekPastWeek: '这是历史中的过去一周，无法更改。',
+    startNewWeekFailed: '无法在这台手机上保存新的一周，因此没有做任何更改。',
+    updatedFromOtherTab: '已从另一个标签页更新，您在此页的最后一次更改未保存。',
+    weekStartedElsewhere: '已从另一个标签页更新：那里已经开始了新的一周。',
+    dismissNotice: '关闭提示',
+    pastWeeksButton: (n) => `历史周（${n}）`,
+    historyTitle: '历史周',
+    historyEmpty: '还没有过去的周',
+    historyEmptyHint: '开始新的一周后，已完成的一周会显示在这里。',
+    historyUnreadable: '目前无法读取已保存的周记录，因此无法显示。',
+    historyRowSets: (n) => `${n} 组已完成`,
   },
 };
 
