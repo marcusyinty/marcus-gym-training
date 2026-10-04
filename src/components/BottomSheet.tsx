@@ -30,7 +30,16 @@ const handlePopState = () => {
 export const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, labelledBy, children }) => {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const [place, setPlace] = useState({ bottom: 0, maxHeight: 0 });
+
+  // Focus moves into the sheet (unless a field inside already took it) and back to the opener afterwards
+  useEffect(() => {
+    if (!open) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!dialogRef.current?.contains(document.activeElement)) dialogRef.current?.focus({ preventScroll: true });
+    return () => opener?.focus({ preventScroll: true });
+  }, [open]);
 
   // Escape + page scroll lock (the scrollbar's width is kept as padding, so nothing jumps)
   useEffect(() => {
@@ -109,12 +118,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, labelle
     <div className="fixed inset-0 z-[42] flex items-end sm:items-center justify-center sm:p-4">
       <div aria-hidden="true" onClick={() => onCloseRef.current()} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150" />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
+        tabIndex={-1}
         data-bottom-sheet
         style={{ marginBottom: place.bottom, maxHeight: place.maxHeight || undefined }}
-        className="relative w-full sm:max-w-md bg-[#121215] border border-[#27272a] rounded-t-2xl sm:rounded-2xl p-4 pb-5 shadow-2xl overflow-y-auto overscroll-contain"
+        className="relative w-full sm:max-w-md bg-[#121215] border border-[#27272a] rounded-t-2xl sm:rounded-2xl p-4 pb-5 shadow-2xl overflow-y-auto overscroll-contain outline-none"
       >
         {children}
       </div>

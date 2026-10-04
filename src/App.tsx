@@ -10,6 +10,11 @@ import { ProgramNotice } from './components/ProgramNotice';
 import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { HistoryModal } from './components/HistoryModal';
+import { SwapSheet } from './components/SwapSheet';
+import { alternativesForSlot, performedExercise, performedExerciseIdIn } from './lib/exerciseVariants';
+import { exerciseIdForSlotId } from './lib/exerciseIds';
+import { swapOptions } from './lib/store/swap';
+import type { SwapResult } from './lib/store/appDataStore';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
 import { useAppData } from './hooks/useAppData';
@@ -30,9 +35,13 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek, swapExercise } = useAppData();
   // A short notice when another tab's newer save replaced something here (see appDataStore)
-  const [tabNotice, setTabNotice] = useState<'droppedChange' | 'weekStartedElsewhere' | null>(null);
+  // droppedChange: an unsaved change here lost; weekStartedElsewhere: Start new week happened there first;
+  // updated: a swap or note found newer data from another tab (shown now)
+  const [tabNotice, setTabNotice] = useState<'droppedChange' | 'weekStartedElsewhere' | 'updated' | null>(null);
+  // The slot whose exercise chooser is open, or null
+  const [swapSlotId, setSwapSlotId] = useState<string | null>(null);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -159,6 +168,18 @@ export const App: React.FC = () => {
   const pastWeek = pastWeekIndex !== null ? appData.archivedCycles[pastWeekIndex] ?? null : null;
 
   const startNewWeekAvailability = savingDisabled ? 'savingOff' : tickedSetCount(appData.currentCycle) === 0 ? 'empty' : 'ready';
+  // Swap (the exercise chooser): saved right away by the store, which also checks the rule again on the
+  // newest data. If another tab changed things meanwhile, the newest data is shown with a notice.
+  const swapSlot = swapSlotId ? activeDay.exercises.find((exercise) => exercise.id === swapSlotId) ?? null : null;
+  const handleSwap = (to: string): SwapResult => {
+    if (!swapSlot) return { ok: false, reason: 'notAllowed', updatedFromOtherTab: false };
+    const from = swapOptions(appData, swapSlot.id).current;
+    const result = swapExercise({ cycleId: appData.currentCycle.id, slotId: swapSlot.id, from, to });
+    const otherTab = result.updatedFromOtherTab || (!result.ok && (result.reason === 'weekChanged' || result.reason === 'changedElsewhere'));
+    if (otherTab) setTabNotice('updated');
+    return result;
+  };
+
   const handleStartNewWeek = () => {
     const result = startNewWeek(appData.currentCycle.id);
     if (result.ok || result.reason === 'alreadyStarted') {
@@ -233,7 +254,9 @@ export const App: React.FC = () => {
             className="mb-3 flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 pl-3 text-xs leading-snug text-sky-100"
           >
             <RefreshCw className="w-4 h-4 shrink-0 text-sky-300" />
-            <span className="flex-1 py-2">{tabNotice === 'droppedChange' ? t.updatedFromOtherTab : t.weekStartedElsewhere}</span>
+            <span className="flex-1 py-2">
+              {tabNotice === 'droppedChange' ? t.updatedFromOtherTab : tabNotice === 'weekStartedElsewhere' ? t.weekStartedElsewhere : t.updatedFromOtherTabNeutral}
+            </span>
             <button
               type="button"
               onClick={() => setTabNotice(null)}
@@ -363,7 +386,12 @@ export const App: React.FC = () => {
           {activeDay.exercises.map((exercise, idx) => (
             <ExerciseCard
               key={exercise.id}
-              exercise={exercise}
+              exercise={performedExercise(exercise, performedExerciseIdIn(appData.currentCycle, exercise.id))}
+              swap={
+                alternativesForSlot(exercise.id).length > 0
+                  ? { isSwapped: performedExerciseIdIn(appData.currentCycle, exercise.id) !== exerciseIdForSlotId(exercise.id), onOpen: () => setSwapSlotId(exercise.id) }
+                  : undefined
+              }
               index={idx}
               lang={lang}
               completedSetIndexes={completedIndexes(appData, exercise.id)}
@@ -478,6 +506,18 @@ export const App: React.FC = () => {
         startNewWeek={{ availability: startNewWeekAvailability, onConfirm: handleStartNewWeek }}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
+
+      {/* Exercise chooser for one slot (only slots with an alternative have a swap button) */}
+      {swapSlot && (
+        <SwapSheet
+          open
+          lang={lang}
+          slot={swapSlot}
+          options={swapOptions(appData, swapSlot.id)}
+          onSwap={handleSwap}
+          onClose={() => setSwapSlotId(null)}
+        />
+      )}
 
       {/* A past week's report, read-only, on top of the history list (closing it goes back to the list) */}
       {pastWeek && (

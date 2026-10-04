@@ -131,6 +131,23 @@ export interface UiTranslations {
   exerciseCountShort: (count: number) => string;
   devLogTitle: string;
   builtForOverload: string;
+  swapButton: string;
+  swappedButton: string;
+  swapButtonLabel: (exercise: string) => string;
+  swapTitle: string;
+  swapCurrent: string;
+  swapProgramExercise: string;
+  swapAlternative: string;
+  swapBackTo: (exercise: string) => string;
+  swapBlockedTicked: string;
+  swapConfirmClear: string;
+  swapConfirmButton: string;
+  swapNotAllowed: string;
+  swapSame: string;
+  swapSavingOff: string;
+  changeSaveFailed: string;
+  updatedFromOtherTabNeutral: string;
+  noVideoYet: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -271,6 +288,23 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     exerciseCountShort: (count) => `${count} Ex`,
     devLogTitle: 'Developer Log & Updates',
     builtForOverload: 'Built for Progressive Overload',
+    swapButton: 'Swap',
+    swappedButton: 'Swapped',
+    swapButtonLabel: (exercise) => `Swap exercise: ${exercise}`,
+    swapTitle: 'Choose the exercise',
+    swapCurrent: 'Current',
+    swapProgramExercise: 'Program exercise',
+    swapAlternative: 'Alternative',
+    swapBackTo: (exercise) => `Switch back to ${exercise}`,
+    swapBlockedTicked: 'You already ticked sets on this exercise this week. Untick them first.',
+    swapConfirmClear: 'Weights and reps you typed for this exercise will be cleared.',
+    swapConfirmButton: 'Swap and clear',
+    swapNotAllowed: "This exercise can't be used here, so nothing was changed.",
+    swapSame: 'This exercise is already selected.',
+    swapSavingOff: "Saving is off right now (your saved workouts couldn't be read), so nothing was changed.",
+    changeSaveFailed: "The change couldn't be saved on this phone, so nothing was changed.",
+    updatedFromOtherTabNeutral: 'Updated with newer data from another tab.',
+    noVideoYet: 'No video yet',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -404,6 +438,23 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     exerciseCountShort: (count) => `${count} 项`,
     devLogTitle: '开发者日志与更新',
     builtForOverload: '为渐进超负荷而生',
+    swapButton: '替换',
+    swappedButton: '已替换',
+    swapButtonLabel: (exercise) => `替换动作：${exercise}`,
+    swapTitle: '选择动作',
+    swapCurrent: '当前',
+    swapProgramExercise: '计划动作',
+    swapAlternative: '替代动作',
+    swapBackTo: (exercise) => `换回${exercise}`,
+    swapBlockedTicked: '本周您已在这个动作上打勾完成了组数。请先取消打勾。',
+    swapConfirmClear: '您为这个动作输入的重量和次数将被清除。',
+    swapConfirmButton: '替换并清除',
+    swapNotAllowed: '这个动作不能用在这里，因此没有做任何更改。',
+    swapSame: '已经选择了这个动作。',
+    swapSavingOff: '目前无法保存（已保存的训练记录无法读取），因此没有做任何更改。',
+    changeSaveFailed: '无法在这台手机上保存这项更改，因此没有做任何更改。',
+    updatedFromOtherTabNeutral: '已使用另一个标签页中较新的数据更新。',
+    noVideoYet: '暂无视频',
   },
 };
 
