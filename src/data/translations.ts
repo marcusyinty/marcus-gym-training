@@ -119,6 +119,12 @@ export interface UiTranslations {
   updatedFromOtherTab: string;
   weekStartedElsewhere: string;
   dismissNotice: string;
+  pastWeeksButton: (n: number) => string;
+  historyTitle: string;
+  historyEmpty: string;
+  historyEmptyHint: string;
+  historyUnreadable: string;
+  historyRowSets: (n: number) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -247,6 +253,12 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     updatedFromOtherTab: "Updated from another tab. Your last change here wasn't saved.",
     weekStartedElsewhere: 'Updated from another tab: a new week was already started there.',
     dismissNotice: 'Dismiss',
+    pastWeeksButton: (n) => `Past weeks (${n})`,
+    historyTitle: 'Past weeks',
+    historyEmpty: 'No past weeks yet',
+    historyEmptyHint: 'When you start a new week, the finished week appears here.',
+    historyUnreadable: "Your saved weeks couldn't be read right now, so they can't be shown.",
+    historyRowSets: (n) => `${n} ticked ${n === 1 ? 'set' : 'sets'}`,
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -368,6 +380,12 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     updatedFromOtherTab: '已从另一个标签页更新，您在此页的最后一次更改未保存。',
     weekStartedElsewhere: '已从另一个标签页更新：那里已经开始了新的一周。',
     dismissNotice: '关闭提示',
+    pastWeeksButton: (n) => `历史周（${n}）`,
+    historyTitle: '历史周',
+    historyEmpty: '还没有过去的周',
+    historyEmptyHint: '开始新的一周后，已完成的一周会显示在这里。',
+    historyUnreadable: '目前无法读取已保存的周记录，因此无法显示。',
+    historyRowSets: (n) => `${n} 组已完成`,
   },
 };
 

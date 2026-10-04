@@ -31,6 +31,14 @@ export const formatDay = (iso: string | undefined, lang: Language): string | nul
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
+// "2026-09-28" (local calendar day), e.g. for file names; null when the saved text isn't a readable date
+export const localDateStamp = (iso: string | undefined): string | null => {
+  const date = readDate(iso);
+  if (!date) return null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
 // e.g. "28 Sept – 4 Oct 2026" / "2026年9月28日 – 10月4日" (the year is written once when both days share it);
 // null when either date is unreadable
 export const formatDayRange = (startIso: string | undefined, endIso: string | undefined, lang: Language): string | null => {

@@ -7,7 +7,7 @@ import { StartWeekResult } from '../lib/store/appDataStore';
 import { WeightUnit } from '../lib/units';
 import { StartNewWeek, StartNewWeekAvailability } from './StartNewWeek';
 import { buildWeeklyReport, TopSet } from '../lib/weeklyReport';
-import { formatDay, formatDayRange } from '../lib/weeks';
+import { formatDay, formatDayRange, localDateStamp } from '../lib/weeks';
 import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale } from 'lucide-react';
 
 interface WeeklyReportModalProps {
@@ -88,7 +88,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
         backgroundColor: '#09090b',
       });
 
-      const dateStr = new Date().toISOString().split('T')[0];
+      // A past week is named after its own start day; the current week after today (as before)
+      const dateStr = (cycle.endedAt ? localDateStamp(cycle.startedAt) : null) ?? new Date().toISOString().split('T')[0];
       const filename = `marcus-weekly-summary-${dateStr}.png`;
 
       const link = document.createElement('a');

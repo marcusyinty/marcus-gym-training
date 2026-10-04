@@ -14,9 +14,10 @@ interface AboutModalProps {
   data: AppDataV3;
   savingDisabled: boolean;
   onRestore: (data: AppDataV3) => RestoreResult;
+  onOpenHistory: () => void;
 }
 
-export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, data, savingDisabled, onRestore }) => {
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, data, savingDisabled, onRestore, onOpenHistory }) => {
   if (!isOpen) return null;
 
   const t = uiTranslations[lang];
@@ -50,7 +51,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
         {/* Scrollable Content Container */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 no-scrollbar my-2">
           {/* Your data: backup file / restore */}
-          <DataBackupSection lang={lang} data={data} savingDisabled={savingDisabled} onRestore={onRestore} />
+          <DataBackupSection lang={lang} data={data} savingDisabled={savingDisabled} onRestore={onRestore} onOpenHistory={onOpenHistory} />
 
           {/* Core Marcus Bio Hero Card */}
           <div className="bg-[#09090b] border border-[#222227] rounded-xl p-4 relative overflow-hidden shrink-0">

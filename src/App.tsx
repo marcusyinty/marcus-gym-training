@@ -9,6 +9,7 @@ import { AboutModal } from './components/AboutModal';
 import { ProgramNotice } from './components/ProgramNotice';
 import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
+import { HistoryModal } from './components/HistoryModal';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
 import { useAppData } from './hooks/useAppData';
@@ -35,6 +36,9 @@ export const App: React.FC = () => {
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  // The archived week whose report is open (index in archivedCycles), or null
+  const [pastWeekIndex, setPastWeekIndex] = useState<number | null>(null);
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
   const [isDayDescExpanded, setIsDayDescExpanded] = useState<boolean>(false);
   // Rest timer between sets: kept in memory only (a reload loses it); `id` gives every new rest its own bar
@@ -151,6 +155,9 @@ export const App: React.FC = () => {
 
   // Start new week (from the weekly report): archive this week, then a fresh Day 1 with no rest running.
   // Only for the week on screen; if another tab already started a new week, that one is shown instead.
+  // The past week being viewed; gone if the history changed meanwhile (e.g. a restore in another tab)
+  const pastWeek = pastWeekIndex !== null ? appData.archivedCycles[pastWeekIndex] ?? null : null;
+
   const startNewWeekAvailability = savingDisabled ? 'savingOff' : tickedSetCount(appData.currentCycle) === 0 ? 'empty' : 'ready';
   const handleStartNewWeek = () => {
     const result = startNewWeek(appData.currentCycle.id);
@@ -442,6 +449,22 @@ export const App: React.FC = () => {
         data={appData}
         savingDisabled={savingDisabled}
         onRestore={restore}
+        onOpenHistory={() => {
+          setIsAboutOpen(false);
+          setIsHistoryOpen(true);
+        }}
+      />
+
+      {/* Past weeks (opened from About → Your data) */}
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        lang={lang}
+        data={appData}
+        days={enrichedDays}
+        weightUnit={weightUnit}
+        savingDisabled={savingDisabled}
+        onOpenWeek={setPastWeekIndex}
+        onClose={() => setIsHistoryOpen(false)}
       />
 
       {/* Weekly Report Summary Modal with Load/Volume Breakdown & PNG Export */}
@@ -455,6 +478,20 @@ export const App: React.FC = () => {
         startNewWeek={{ availability: startNewWeekAvailability, onConfirm: handleStartNewWeek }}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
+
+      {/* A past week's report, read-only, on top of the history list (closing it goes back to the list) */}
+      {pastWeek && (
+        <WeeklyReportModal
+          isOpen
+          lang={lang}
+          days={enrichedDays}
+          cycle={pastWeek}
+          weekNumber={(pastWeekIndex ?? 0) + 1}
+          weightUnit={weightUnit}
+          startNewWeek={{ availability: 'pastWeek', onConfirm: () => ({ ok: false, reason: 'savingOff' }) }}
+          onClose={() => setPastWeekIndex(null)}
+        />
+      )}
     </div>
   );
 };
