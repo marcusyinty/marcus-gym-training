@@ -133,6 +133,21 @@ describe('backup file', () => {
     expect(parsed.summary).toEqual({ weeks: 2, tickedSets: 3 });
   });
 
+  it('carries 3 archived weeks through a backup unchanged, in order (history survives a restore)', () => {
+    const week = (n: number) => ({
+      id: `w${n}`,
+      startedAt: `2026-09-0${n}T06:00:00.000Z`,
+      endedAt: `2026-09-0${n + 6}T20:00:00.000Z`,
+      slots: { rdl: { slotId: 'rdl', exerciseId: 'rdl', performedExerciseId: 'rdl', sets: { 0: { weight: String(90 + n), reps: '5', unit: 'kg' as const, done: true } } } },
+    });
+    const data: AppDataV3 = { ...sample(), archivedCycles: [week(1), week(2), week(3)], reportShownCycleIds: ['w1', 'w3'] };
+    const parsed = parseBackupFile(createBackupFile(data, NOW).text);
+    if (!parsed.ok) throw new Error('expected ok');
+    expect(parsed.data).toStrictEqual(data);
+    expect(parsed.data.archivedCycles.map((c) => c.id)).toEqual(['w1', 'w2', 'w3']);
+    expect(parsed.summary).toEqual({ weeks: 4, tickedSets: 2 + 3 }); // 2 ticked this week + 1 in each old week
+  });
+
   it('a missing or bad export date is reported as unknown, not an error', () => {
     const parsed = parseBackupFile(fileWith({ exportedAt: 'yesterday' }));
     expect(parsed).toMatchObject({ ok: true, exportedAt: null });

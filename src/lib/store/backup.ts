@@ -1,9 +1,10 @@
 // Backup files: the whole AppDataV3 object saved to, and read back from, a JSON file on the phone.
 // No login, no server. The download and the file picker live in the UI; everything here is plain logic.
 // Settings (language, unit, rest sound) are not part of a backup.
-import { AppDataV3, Cycle } from '../model';
+import { AppDataV3 } from '../model';
 import { StorageLike } from '../storage';
 import { validateV3 } from './dataV3';
+import { tickedSetCount } from './selectors';
 
 export const BACKUP_APP = 'aesthetic-recomp-backup';
 export const BACKUP_VERSION = 1;
@@ -42,13 +43,10 @@ export const createBackupFile = (data: AppDataV3, now: Date): { fileName: string
   return { fileName: backupFileName(now), text: JSON.stringify(file, null, 2) };
 };
 
-const tickedSetsIn = (cycle: Cycle) =>
-  Object.values(cycle.slots).reduce((count, slot) => count + Object.values(slot.sets).filter((set) => set.done).length, 0);
-
 // Weeks = the current week plus archived ones; ticked sets counted across all of them
 export const summarizeData = (data: AppDataV3): DataSummary => ({
   weeks: 1 + data.archivedCycles.length,
-  tickedSets: [data.currentCycle, ...data.archivedCycles].reduce((count, cycle) => count + tickedSetsIn(cycle), 0),
+  tickedSets: [data.currentCycle, ...data.archivedCycles].reduce((count, cycle) => count + tickedSetCount(cycle), 0),
 });
 
 // Reads a backup file's text. Never throws: any problem comes back as an error code and nothing else happens.

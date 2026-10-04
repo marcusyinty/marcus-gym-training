@@ -1,8 +1,8 @@
-// Read-only views of AppDataV3 in exactly the shapes the components use today (the v2 shapes), so the
-// store can be connected later without changing any component. Pure functions. Not used by the app yet.
+// Read-only views of AppDataV3 in exactly the shapes the components use (the v2 shapes). Pure functions.
+// Each comes in two forms: for any week (a Cycle, current or archived) and for the current week.
 import { parseSetsCount } from '../../utils/parseSetsCount';
 import { exerciseIdForSlotId } from '../exerciseIds';
-import { AppDataV3, BestSet, LoggedSet, LoggedSlot } from '../model';
+import { AppDataV3, BestSet, Cycle, LoggedSet, LoggedSlot } from '../model';
 import { WeightUnit } from '../units';
 
 // Same fields as the v2 SetDetail the cards read
@@ -33,12 +33,12 @@ const hasOwn = (object: object, key: string | number) => Object.prototype.hasOwn
 // entry, exactly like v2, where only the tick existed.
 export const hasDetail = (set: LoggedSet): boolean => set.updatedAt !== undefined || set.weight !== '' || set.reps !== '';
 
-const currentSlot = (data: AppDataV3, slotId: string): LoggedSlot | undefined =>
-  hasOwn(data.currentCycle.slots, slotId) ? data.currentCycle.slots[slotId] : undefined;
+const slotIn = (cycle: Cycle, slotId: string): LoggedSlot | undefined =>
+  hasOwn(cycle.slots, slotId) ? cycle.slots[slotId] : undefined;
 
-// Ticked set indexes of a slot in the current cycle, sorted (v2: completedSets[slotId])
-export const completedIndexes = (data: AppDataV3, slotId: string): number[] => {
-  const slot = currentSlot(data, slotId);
+// Ticked set indexes of a slot in a week, sorted (v2: completedSets[slotId])
+export const cycleCompletedIndexes = (cycle: Cycle, slotId: string): number[] => {
+  const slot = slotIn(cycle, slotId);
   if (!slot) return [];
   return Object.entries(slot.sets)
     .filter(([, set]) => set.done)
@@ -46,9 +46,15 @@ export const completedIndexes = (data: AppDataV3, slotId: string): number[] => {
     .sort((a, b) => a - b);
 };
 
-// Typed weight/reps of a slot in the current cycle (v2: setDetails[slotId])
-export const setDetails = (data: AppDataV3, slotId: string): Record<number, SetDetailView> => {
-  const slot = currentSlot(data, slotId);
+export const completedIndexes = (data: AppDataV3, slotId: string): number[] => cycleCompletedIndexes(data.currentCycle, slotId);
+
+// Every ticked set in a week, in any slot (not capped by the program's set counts)
+export const tickedSetCount = (cycle: Cycle): number =>
+  Object.values(cycle.slots).reduce((count, slot) => count + Object.values(slot.sets).filter((set) => set.done).length, 0);
+
+// Typed weight/reps of a slot in a week (v2: setDetails[slotId])
+export const cycleSetDetails = (cycle: Cycle, slotId: string): Record<number, SetDetailView> => {
+  const slot = slotIn(cycle, slotId);
   if (!slot) return {};
   return Object.fromEntries(
     Object.entries(slot.sets)
@@ -61,15 +67,17 @@ export const setDetails = (data: AppDataV3, slotId: string): Record<number, SetD
   );
 };
 
+export const setDetails = (data: AppDataV3, slotId: string): Record<number, SetDetailView> => cycleSetDetails(data.currentCycle, slotId);
+
 // Best set for a slot, shared by every slot of the same exercise (e.g. rdl and rdl-lower-b)
 export const previousBest = (data: AppDataV3, slotId: string): BestSet | undefined => {
   const exerciseId = exerciseIdForSlotId(slotId);
   return hasOwn(data.bests, exerciseId) ? data.bests[exerciseId] : undefined;
 };
 
-// Counted exactly like App.tsx today: per exercise, the NUMBER of ticked sets, capped at its set count.
+// Counted exactly like App.tsx always did: per exercise, the NUMBER of ticked sets, capped at its set count.
 // Known quirk kept on purpose: ticked indexes beyond the set count still count toward it.
-export const cycleProgress = (data: AppDataV3, program: ProgramDay[]): CycleProgress => {
+export const progressOfCycle = (cycle: Cycle, program: ProgramDay[]): CycleProgress => {
   const perDay: CycleProgress['perDay'] = {};
   let completedSets = 0;
   let totalSets = 0;
@@ -80,7 +88,7 @@ export const cycleProgress = (data: AppDataV3, program: ProgramDay[]): CycleProg
     for (const exercise of day.exercises) {
       const setCount = parseSetsCount(exercise.sets);
       dayTotal += setCount;
-      dayCompleted += Math.min(completedIndexes(data, exercise.id).length, setCount);
+      dayCompleted += Math.min(cycleCompletedIndexes(cycle, exercise.id).length, setCount);
     }
     perDay[day.id] = { completed: dayCompleted, total: dayTotal };
     if (dayTotal > 0 && dayCompleted === dayTotal) completedDays += 1;
@@ -89,6 +97,8 @@ export const cycleProgress = (data: AppDataV3, program: ProgramDay[]): CycleProg
   }
   return { perDay, completedSets, totalSets, completedDays };
 };
+
+export const cycleProgress = (data: AppDataV3, program: ProgramDay[]): CycleProgress => progressOfCycle(data.currentCycle, program);
 
 export const isCycleComplete = (data: AppDataV3, program: ProgramDay[]): boolean => {
   const { completedSets, totalSets } = cycleProgress(data, program);

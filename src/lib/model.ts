@@ -1,4 +1,4 @@
-// Version 3 of the saved workout data. Not used by the app yet.
+// Version 3 of the saved workout data (the aesthetic_recomp_v3 key).
 // Language and weight unit are NOT part of it; they keep their own saved keys.
 import { WeightUnit } from './units';
 
