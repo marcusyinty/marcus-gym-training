@@ -6,6 +6,7 @@ import { migrateV2ToV3, MigrationContext } from '../migrateV2';
 import { AppDataV3, BestSet, Cycle, LoggedSet, LoggedSlot } from '../model';
 import { completedSetsItem, previousBestsItem, setDetailsItem, SetDetailsByExercise } from '../savedData';
 import { backupKeyFor, safeRead, safeWrite, StorageLike } from '../storage';
+import { isAllowedInSlot } from '../exerciseVariants';
 import { isCycleComplete } from './selectors';
 
 export const STORAGE_KEY_V3 = 'aesthetic_recomp_v3';
@@ -62,10 +63,14 @@ const checkSet = (raw: unknown, key: string): Checked<LoggedSet> => {
   return { value: set as unknown as LoggedSet, dropped };
 };
 
-const checkSlot = (raw: unknown): Checked<LoggedSlot> => {
+const checkSlot = (raw: unknown, slotKey: string): Checked<LoggedSlot> => {
   if (!isPlainObject(raw) || typeof raw.slotId !== 'string' || typeof raw.exerciseId !== 'string') return { value: null, dropped: true };
   const sets = checkRecord(raw.sets, checkSet);
-  const performedOk = typeof raw.performedExerciseId === 'string';
+  // The exercise done must be the slot's own exercise or one of its alternatives. Anything else (e.g. a
+  // hand-edited backup) falls back to the slot's own exercise; its logged sets are always kept.
+  const performedOk =
+    typeof raw.performedExerciseId === 'string' &&
+    (raw.performedExerciseId === raw.exerciseId || isAllowedInSlot(slotKey, raw.performedExerciseId));
   return {
     value: { ...raw, slotId: raw.slotId, exerciseId: raw.exerciseId, performedExerciseId: performedOk ? (raw.performedExerciseId as string) : raw.exerciseId, sets: sets.value ?? {} },
     dropped: sets.dropped || !performedOk,

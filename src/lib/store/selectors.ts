@@ -1,7 +1,7 @@
 // Read-only views of AppDataV3 in exactly the shapes the components use (the v2 shapes). Pure functions.
 // Each comes in two forms: for any week (a Cycle, current or archived) and for the current week.
 import { parseSetsCount } from '../../utils/parseSetsCount';
-import { exerciseIdForSlotId } from '../exerciseIds';
+import { performedExerciseIdIn } from '../exerciseVariants';
 import { AppDataV3, BestSet, Cycle, LoggedSet, LoggedSlot } from '../model';
 import { WeightUnit } from '../units';
 
@@ -69,9 +69,10 @@ export const cycleSetDetails = (cycle: Cycle, slotId: string): Record<number, Se
 
 export const setDetails = (data: AppDataV3, slotId: string): Record<number, SetDetailView> => cycleSetDetails(data.currentCycle, slotId);
 
-// Best set for a slot, shared by every slot of the same exercise (e.g. rdl and rdl-lower-b)
+// Best set of the exercise done in a slot this week: shared by every slot of the same exercise (e.g. rdl and
+// rdl-lower-b, or hack-squat on Day 2 and Day 5); a swapped-in alternative has its own best
 export const previousBest = (data: AppDataV3, slotId: string): BestSet | undefined => {
-  const exerciseId = exerciseIdForSlotId(slotId);
+  const exerciseId = performedExerciseIdIn(data.currentCycle, slotId);
   return hasOwn(data.bests, exerciseId) ? data.bests[exerciseId] : undefined;
 };
 

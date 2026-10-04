@@ -5,6 +5,7 @@ import { exerciseIdForSlotId } from '../exerciseIds';
 import { AppDataV3, LoggedSet, LoggedSlot } from '../model';
 import { WeightUnit, withRepsEdit, withWeightEdit } from '../units';
 import { hasDetail, tickedSetCount } from './selectors';
+import { applySwap, checkSwap } from './swap';
 
 export type SetTag = 'easy' | 'good' | 'max';
 
@@ -20,7 +21,9 @@ export type StoreAction =
   // a restored backup (already checked with validateV3) replaces everything
   | { type: 'replaceAll'; data: AppDataV3 }
   // cycleId: the week the user was looking at; newId: the id for the new empty week
-  | { type: 'startNewWeek'; cycleId: string; newId: string };
+  | { type: 'startNewWeek'; cycleId: string; newId: string }
+  // which exercise a slot does this week (see swap.ts for the rule); from: the exercise the user saw there
+  | { type: 'swapExercise'; cycleId: string; slotId: string; from: string; to: string };
 
 export interface ReducerContext {
   now: Date;
@@ -49,13 +52,15 @@ const withoutKey = <V>(record: Record<string, V>, key: string): Record<string, V
   Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
 
 // Bests only come from done sets and only go up (estimated 1RM in kg; a tie keeps the existing best).
-// Keyed by the shared exercise id, so the two slots of the same exercise share one best.
+// Keyed by the exercise actually done (performedExerciseId): the slot's own shared id, so two slots of the
+// same exercise share one best, or an alternative's own id, which never touches the default's best.
 const withBestFrom = (state: AppDataV3, slot: LoggedSlot, set: LoggedSet): AppDataV3 => {
   if (!set.done) return state;
+  const key = slot.performedExerciseId;
   const candidate = { weight: set.weight, reps: set.reps, unit: set.unit };
-  const current = hasOwn(state.bests, slot.exerciseId) ? state.bests[slot.exerciseId] : undefined;
+  const current = hasOwn(state.bests, key) ? state.bests[key] : undefined;
   if (!isNewBest(candidate, current)) return state;
-  return { ...state, bests: { ...state.bests, [slot.exerciseId]: candidate } };
+  return { ...state, bests: { ...state.bests, [key]: candidate } };
 };
 
 export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContext): AppDataV3 => {
@@ -105,7 +110,8 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
     }
 
     case 'resetDay': {
-      // Current cycle only; archived cycles and bests are never touched (bests stay, as today)
+      // Current cycle only; archived cycles and bests are never touched (bests stay, as today). Removing the
+      // slots also puts any swapped exercise back to the slot's own exercise.
       const slots = Object.fromEntries(Object.entries(state.currentCycle.slots).filter(([slotId]) => !action.slotIds.includes(slotId)));
       return { ...state, currentCycle: { ...state.currentCycle, slots } };
     }
@@ -116,6 +122,10 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
 
     case 'replaceAll':
       return { ...action.data };
+
+    case 'swapExercise':
+      // Not allowed (ticked sets, another week, ...): nothing changes; the store reports the reason
+      return checkSwap(state, action).ok ? applySwap(state, action.slotId, action.to) : state;
 
     case 'startNewWeek': {
       // Nothing happens unless the user's week is still the current one (another tab may have moved on),

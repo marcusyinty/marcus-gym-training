@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { EnrichedWorkoutDay } from '../types/workout';
-import { Language, uiTranslations, dayTranslationsZh, exerciseTranslationsZh, UiTranslations } from '../data/translations';
+import { Language, uiTranslations, dayTranslationsZh, UiTranslations } from '../data/translations';
+import { performedExerciseName } from '../lib/exerciseVariants';
 import { toPng } from 'html-to-image';
 import { Cycle } from '../lib/model';
 import { StartWeekResult } from '../lib/store/appDataStore';
@@ -225,9 +226,9 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
       dayId: day.id,
       heading: reportDayHeading(day.dayNumber, lang === 'zh' && zhDay ? zhDay.title : day.title, lang, t),
       exercises: day.exercises.map((ex, exerciseIndex) => {
-        const zhEx = exerciseTranslationsZh[ex.id];
-        const { top } = report.days[dayIndex].exercises[exerciseIndex];
-        return { id: ex.id, name: lang === 'zh' && zhEx ? zhEx.name : ex.name, topText: topSetText(top, weightUnit, t), ticked: top.kind !== 'none' };
+        // The name of the exercise actually done that week (a swapped-in alternative shows its own name)
+        const { top, performedExerciseId } = report.days[dayIndex].exercises[exerciseIndex];
+        return { id: ex.id, name: performedExerciseName(ex, performedExerciseId, lang), topText: topSetText(top, weightUnit, t), ticked: top.kind !== 'none' };
       }),
     };
   });
