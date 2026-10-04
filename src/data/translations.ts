@@ -129,6 +129,8 @@ export interface UiTranslations {
   reportCleared: (percent: number) => string;
   bodyweightShort: string;
   exerciseCountShort: (count: number) => string;
+  devLogTitle: string;
+  builtForOverload: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -267,6 +269,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     reportCleared: (percent) => `${percent}% Cleared`,
     bodyweightShort: 'BW',
     exerciseCountShort: (count) => `${count} Ex`,
+    devLogTitle: 'Developer Log & Updates',
+    builtForOverload: 'Built for Progressive Overload',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -398,6 +402,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     reportCleared: (percent) => `完成 ${percent}%`,
     bodyweightShort: '自重',
     exerciseCountShort: (count) => `${count} 项`,
+    devLogTitle: '开发者日志与更新',
+    builtForOverload: '为渐进超负荷而生',
   },
 };
 

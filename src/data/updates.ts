@@ -1,6 +1,7 @@
 export interface LogEntry {
   id: string;
-  date: string;
+  date: string; // as shown in English
+  isoDate: string; // the same day as YYYY-MM-DD, used to show it in 中文
   timestamp: string;
   title: { en: string; zh: string };
   content: { en: string; zh: string };
@@ -11,6 +12,7 @@ export const updateLogs: LogEntry[] = [
   {
     id: "v1-launch",
     date: "September 13, 2026",
+    isoDate: "2026-09-13",
     timestamp: "15:00",
     tag: "Launch",
     title: {
