@@ -153,6 +153,8 @@ export interface UiTranslations {
   remarkHint: string;
   remarkSave: string;
   remarkRowLabel: (exercise: string, remark: string) => string;
+  restoreRemarksKept: string;
+  restoreRemarksReplaced: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -314,6 +316,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     remarkTitle: (exercise) => `Note for ${exercise}`,
     remarkHint: 'Up to 3 lines. Save empty to delete the note.',
     remarkSave: 'Save',
+    restoreRemarksKept: 'Your saved remarks will be kept.',
+    restoreRemarksReplaced: 'Your saved remarks will be replaced.',
     remarkRowLabel: (exercise, remark) => (remark ? `Note for ${exercise}: ${remark}` : `Add a note for ${exercise}`),
   },
   zh: {
@@ -469,6 +473,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     remarkTitle: (exercise) => `${exercise} 的备注`,
     remarkHint: '最多 3 行。清空后保存即可删除备注。',
     remarkSave: '保存',
+    restoreRemarksKept: '您保存的备注会保留。',
+    restoreRemarksReplaced: '您保存的备注会被替换。',
     remarkRowLabel: (exercise, remark) => (remark ? `${exercise} 的备注：${remark}` : `为 ${exercise} 添加备注`),
   },
 };
