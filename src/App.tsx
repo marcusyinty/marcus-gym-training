@@ -416,7 +416,7 @@ export const App: React.FC = () => {
         </div>
       </footer>
 
-      {/* Rest timer bar: z-40, so the dialogs below (z-50) always cover it */}
+      {/* Rest timer bar: z-45, above the header (z-40) and the small sheets (z-42), below the dialogs (z-50) */}
       {restTimer && (
         <RestTimerBar
           key={restTimer.id}

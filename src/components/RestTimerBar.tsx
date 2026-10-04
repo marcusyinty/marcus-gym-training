@@ -64,7 +64,7 @@ export const RestTimerBar: React.FC<RestTimerBarProps> = ({ lang, countdown, sou
   const progress = restProgress(countdown, now);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] pointer-events-none">
+    <div data-rest-bar className="fixed inset-x-0 bottom-0 z-[45] pb-[env(safe-area-inset-bottom)] pointer-events-none">
       {/* Screen readers: announced only when the rest starts and when it ends, not every second */}
       <p className="sr-only" aria-live="polite">
         {isOver ? t.restOver : startAnnouncement}
