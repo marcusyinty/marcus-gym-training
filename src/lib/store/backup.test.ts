@@ -7,6 +7,7 @@ import {
   MAX_BACKUP_BYTES,
   parseBackupFile,
   PRE_RESTORE_PREFIX,
+  pruneSafetyCopies,
   saveSafetyCopy,
   summarizeData,
 } from './backup';
@@ -146,14 +147,23 @@ describe('safety copies before a restore', () => {
     aesthetic_recomp_previous_bests_v2: '{}',
   };
 
-  it('keeps only the 3 newest copies and touches nothing else', () => {
+  it('saving a copy never removes anything by itself', () => {
+    const storage = new MemoryStorage();
+    for (let day = 1; day <= 5; day++) saveSafetyCopy(storage, `v3 text ${day}`, new Date(Date.UTC(2026, 9, day)));
+    expect(storage.length).toBe(5);
+  });
+
+  it('pruning keeps only the 3 newest copies and touches nothing else', () => {
     const storage = new MemoryStorage({
       ...V2,
       aesthetic_recomp_backup_aesthetic_recomp_v3_raw: 'older backup kind',
       aesthetic_recomp_backup_before_restore: 'no trailing underscore: not ours',
     });
     const times = ['2026-10-01T10:00:00.000Z', '2026-10-02T10:00:00.000Z', '2026-10-03T10:00:00.000Z', '2026-10-04T10:00:00.000Z'];
-    times.forEach((t, i) => expect(saveSafetyCopy(storage, `v3 text ${i}`, new Date(t))).toBe(true));
+    times.forEach((t, i) => {
+      expect(saveSafetyCopy(storage, `v3 text ${i}`, new Date(t))).toBe(true);
+      pruneSafetyCopies(storage);
+    });
     const copies = [...storage.data.keys()].filter((k) => k.startsWith(PRE_RESTORE_PREFIX)).sort();
     expect(copies).toEqual(times.slice(1).map((t) => PRE_RESTORE_PREFIX + t));
     expect(storage.getItem(PRE_RESTORE_PREFIX + times[3])).toBe('v3 text 3');

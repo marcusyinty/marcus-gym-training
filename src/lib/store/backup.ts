@@ -79,7 +79,8 @@ export const PRE_RESTORE_KEEP = 3;
 export type KeyedStorage = StorageLike & Partial<Pick<Storage, 'key' | 'length' | 'removeItem'>>;
 
 // Removes all but the newest PRE_RESTORE_KEEP safety copies. Only keys with exactly this prefix are touched.
-const pruneSafetyCopies = (storage: KeyedStorage) => {
+// Called only after a restore has been saved, so a failed restore never removes an older copy.
+export const pruneSafetyCopies = (storage: KeyedStorage) => {
   try {
     if (typeof storage.key !== 'function' || typeof storage.removeItem !== 'function' || typeof storage.length !== 'number') return;
     const keys: string[] = [];
@@ -94,15 +95,14 @@ const pruneSafetyCopies = (storage: KeyedStorage) => {
   }
 };
 
-// Saves the current v3 text under aesthetic_recomp_backup_before_restore_<ISO time> and keeps the newest 3.
+// Saves the current v3 text under aesthetic_recomp_backup_before_restore_<ISO time>.
 // Nothing saved yet (null) means there is nothing to copy. Returns false if the copy could not be saved.
-export const saveSafetyCopy = (storage: KeyedStorage, currentText: string | null, now: Date): boolean => {
+export const saveSafetyCopy = (storage: StorageLike, currentText: string | null, now: Date): boolean => {
   if (currentText === null) return true;
   try {
     storage.setItem(PRE_RESTORE_PREFIX + now.toISOString(), currentText);
   } catch (e) {
     return false;
   }
-  pruneSafetyCopies(storage);
   return true;
 };

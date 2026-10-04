@@ -313,9 +313,13 @@ describe('restore from a backup', () => {
       };
       return storage;
     };
+    const withOldCopies = (storage: MemoryStorage) => {
+      for (const day of ['01', '02', '03']) storage.data.set(`${PRE_RESTORE_PREFIX}2026-09-${day}T10:00:00.000Z`, 'old copy');
+      return storage;
+    };
     const cases = [
-      { storage: fullFor((k) => k.startsWith(PRE_RESTORE_PREFIX)), error: 'safetyCopyFailed' },
-      { storage: fullFor((k) => k === STORAGE_KEY_V3), error: 'saveFailed' },
+      { storage: withOldCopies(fullFor((k) => k.startsWith(PRE_RESTORE_PREFIX))), error: 'safetyCopyFailed' },
+      { storage: withOldCopies(fullFor((k) => k === STORAGE_KEY_V3)), error: 'saveFailed' },
     ];
     for (const { storage, error } of cases) {
       const store = createAppDataStore(options(storage));
@@ -325,6 +329,7 @@ describe('restore from a backup', () => {
       store.subscribe(() => notified++);
       expect(store.restore(BACKUP_DATA)).toEqual({ ok: false, error });
       expect([store.getState(), storage.getItem(STORAGE_KEY_V3), notified, store.getReplacedCount()]).toEqual([before, savedBefore, 0, 0]);
+      expect(storage.removed).toEqual([]); // a failed restore never removes an older safety copy
       expect(v2Snapshot(storage)).toEqual(Object.values(V2_RECORDED));
     }
 

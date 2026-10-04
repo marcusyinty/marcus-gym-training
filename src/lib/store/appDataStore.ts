@@ -4,7 +4,7 @@
 // The old v2 keys are never written here: they are only read once, by loadAppData, to migrate.
 import { AppDataV3 } from '../model';
 import { createDebouncedWriter, StoredItem } from '../storage';
-import { KeyedStorage, saveSafetyCopy } from './backup';
+import { KeyedStorage, pruneSafetyCopies, saveSafetyCopy } from './backup';
 import { loadAppData, LoadSource, STORAGE_KEY_V3, validateV3 } from './dataV3';
 import { reduce, StoreAction } from './reducer';
 
@@ -121,7 +121,7 @@ export const createAppDataStore = ({ storage, now, makeId, delay = 300 }: AppDat
       } catch (e) {
         return { ok: false, error: 'safetyCopyFailed' };
       }
-      // Keep what is saved now under aesthetic_recomp_backup_before_restore_<time> (newest 3 kept)
+      // Keep what is saved now under aesthetic_recomp_backup_before_restore_<time>
       if (!saveSafetyCopy(storage, currentText, time)) return { ok: false, error: 'safetyCopyFailed' };
       const next = reduce(state, { type: 'replaceAll', data }, { now: time });
       try {
@@ -129,6 +129,8 @@ export const createAppDataStore = ({ storage, now, makeId, delay = 300 }: AppDat
       } catch (e) {
         return { ok: false, error: 'saveFailed' }; // the v3 key still holds the old data
       }
+      // Only now that the restore is saved: keep the newest 3 safety copies
+      pruneSafetyCopies(storage);
       writer.cancel();
       state = next;
       canSave = true;
