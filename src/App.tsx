@@ -15,11 +15,11 @@ import { useAppData } from './hooks/useAppData';
 import { languageItem, restSoundItem, weightUnitItem } from './lib/savedData';
 import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
 import { unlockRestSound } from './lib/restAlert';
-import { completedIndexes, cycleProgress, previousBest, setDetails } from './lib/store/selectors';
+import { completedIndexes, cycleProgress, previousBest, setDetails, tickedSetCount } from './lib/store/selectors';
 import { shouldAutoOpenReport } from './lib/store/reportAutoOpen';
 import { currentWeekNumber } from './lib/weeks';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle, RefreshCw, X } from 'lucide-react';
 
 const enrichedDays = getEnrichedWorkoutProgram(workoutProgram);
 
@@ -29,7 +29,9 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, savingDisabled, replacedCount, dispatch, restore } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek } = useAppData();
+  // A short notice when another tab's newer save replaced something here (see appDataStore)
+  const [tabNotice, setTabNotice] = useState<'droppedChange' | 'weekStartedElsewhere' | null>(null);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -91,6 +93,20 @@ export const App: React.FC = () => {
     lastReplacedCountRef.current = replacedCount;
   }, [isWeekComplete, replacedCount]);
 
+  // An unsaved change here lost to another tab's newer save: say so instead of letting it vanish silently
+  const lastDroppedCountRef = useRef(droppedChangeCount);
+  useEffect(() => {
+    if (droppedChangeCount !== lastDroppedCountRef.current) setTabNotice('droppedChange');
+    lastDroppedCountRef.current = droppedChangeCount;
+  }, [droppedChangeCount]);
+
+  // The notice goes away by itself after a while (or with its close button)
+  useEffect(() => {
+    if (!tabNotice) return;
+    const timer = setTimeout(() => setTabNotice(null), 12000);
+    return () => clearTimeout(timer);
+  }, [tabNotice]);
+
   // Handler: Toggle set completion
   // Starts the rest after a tick. Only the user's tap reaches this, so loading, other-tab sync and
   // unticking never start it.
@@ -132,6 +148,20 @@ export const App: React.FC = () => {
   const handleResetActiveDay = () => dispatch({ type: 'resetDay', slotIds: activeDay.exercises.map((ex) => ex.id) });
 
   const handleResetAll = () => dispatch({ type: 'resetAll' });
+
+  // Start new week (from the weekly report): archive this week, then a fresh Day 1 with no rest running.
+  // Only for the week on screen; if another tab already started a new week, that one is shown instead.
+  const startNewWeekAvailability = savingDisabled ? 'savingOff' : tickedSetCount(appData.currentCycle) === 0 ? 'empty' : 'ready';
+  const handleStartNewWeek = () => {
+    const result = startNewWeek(appData.currentCycle.id);
+    if (result.ok || result.reason === 'alreadyStarted') {
+      setIsWeeklyReportOpen(false);
+      setActiveDayId(enrichedDays[0].id);
+      setRestTimer(null);
+      if (!result.ok) setTabNotice('weekStartedElsewhere');
+    }
+    return result;
+  };
 
   const handleOpenVideoModal = (videoUrl: string, posterUrl: string, title: string) => {
     setModalState({
@@ -185,6 +215,26 @@ export const App: React.FC = () => {
           >
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
             <span>{t.storageErrorBanner}</span>
+          </div>
+        )}
+
+        {/* Another tab's newer save replaced something here (a dropped change, or a week started there) */}
+        {tabNotice && (
+          <div
+            role="status"
+            data-tab-notice
+            className="mb-3 flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 pl-3 text-xs leading-snug text-sky-100"
+          >
+            <RefreshCw className="w-4 h-4 shrink-0 text-sky-300" />
+            <span className="flex-1 py-2">{tabNotice === 'droppedChange' ? t.updatedFromOtherTab : t.weekStartedElsewhere}</span>
+            <button
+              type="button"
+              onClick={() => setTabNotice(null)}
+              aria-label={t.dismissNotice}
+              className="w-11 h-11 shrink-0 flex items-center justify-center text-sky-200 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -402,6 +452,7 @@ export const App: React.FC = () => {
         cycle={appData.currentCycle}
         weekNumber={currentWeekNumber(appData)}
         weightUnit={weightUnit}
+        startNewWeek={{ availability: startNewWeekAvailability, onConfirm: handleStartNewWeek }}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
     </div>

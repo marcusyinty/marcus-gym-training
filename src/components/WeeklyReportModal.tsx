@@ -3,7 +3,9 @@ import { EnrichedWorkoutDay } from '../types/workout';
 import { Language, uiTranslations, dayTranslationsZh, exerciseTranslationsZh, UiTranslations } from '../data/translations';
 import { toPng } from 'html-to-image';
 import { Cycle } from '../lib/model';
+import { StartWeekResult } from '../lib/store/appDataStore';
 import { WeightUnit } from '../lib/units';
+import { StartNewWeek, StartNewWeekAvailability } from './StartNewWeek';
 import { buildWeeklyReport, TopSet } from '../lib/weeklyReport';
 import { formatDay, formatDayRange } from '../lib/weeks';
 import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale } from 'lucide-react';
@@ -16,6 +18,7 @@ interface WeeklyReportModalProps {
   cycle: Cycle;
   weekNumber: number;
   weightUnit: WeightUnit;
+  startNewWeek: { availability: StartNewWeekAvailability; onConfirm: () => StartWeekResult };
   onClose: () => void;
 }
 
@@ -44,7 +47,7 @@ const topSetText = (top: TopSet, unit: WeightUnit, t: UiTranslations) => {
   }
 };
 
-export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, lang, days, cycle, weekNumber, weightUnit, onClose }) => {
+export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, lang, days, cycle, weekNumber, weightUnit, startNewWeek, onClose }) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -289,6 +292,15 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
               </>
             )}
           </button>
+
+          {/* Finish this week: archive it and start an empty one (or why that isn't possible here) */}
+          <StartNewWeek
+            lang={lang}
+            availability={startNewWeek.availability}
+            weekNumber={weekNumber}
+            tickedSets={report.tickedSets}
+            onConfirm={startNewWeek.onConfirm}
+          />
         </div>
       </div>
     </div>

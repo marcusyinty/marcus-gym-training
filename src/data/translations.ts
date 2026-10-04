@@ -108,6 +108,17 @@ export interface UiTranslations {
   movementsCount: (n: number) => string;
   reportSetsTicked: (n: number) => string;
   reportEmpty: string;
+  startNewWeekButton: string;
+  startNewWeekTitle: string;
+  startNewWeekText: string;
+  startNewWeekSummary: (week: number, sets: number) => string;
+  startNewWeekEmpty: string;
+  startNewWeekSavingOff: string;
+  startNewWeekPastWeek: string;
+  startNewWeekFailed: string;
+  updatedFromOtherTab: string;
+  weekStartedElsewhere: string;
+  dismissNotice: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -225,6 +236,17 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     movementsCount: (n) => `${n} Movements`,
     reportSetsTicked: (n) => `${n} ${n === 1 ? 'set' : 'sets'} ✓`,
     reportEmpty: 'No sets ticked this week yet. Tick sets as you train and this report fills in.',
+    startNewWeekButton: 'Start new week',
+    startNewWeekTitle: 'Start a new week?',
+    startNewWeekText: 'This week will be saved to your history. A new empty week begins. Your personal bests are kept.',
+    startNewWeekSummary: (week, sets) => `Week ${week} · ${sets} ticked ${sets === 1 ? 'set' : 'sets'}`,
+    startNewWeekEmpty: 'Nothing to save this week yet. Tick at least one set first.',
+    startNewWeekSavingOff: "Saving is off right now (your saved workouts couldn't be read), so a new week can't be started.",
+    startNewWeekPastWeek: "This is a past week from your history. It can't be changed.",
+    startNewWeekFailed: "The new week couldn't be saved on this phone, so nothing was changed.",
+    updatedFromOtherTab: "Updated from another tab. Your last change here wasn't saved.",
+    weekStartedElsewhere: 'Updated from another tab: a new week was already started there.',
+    dismissNotice: 'Dismiss',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -335,6 +357,17 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     movementsCount: (n) => `${n} 个动作`,
     reportSetsTicked: (n) => `${n} 组 ✓`,
     reportEmpty: '本周还没有完成的组。训练时打勾，这份战报就会自动填好。',
+    startNewWeekButton: '开始新的一周',
+    startNewWeekTitle: '开始新的一周？',
+    startNewWeekText: '本周记录将保存到历史中，新的一周从空白开始。您的个人最佳记录会保留。',
+    startNewWeekSummary: (week, sets) => `第 ${week} 周 · ${sets} 组已完成`,
+    startNewWeekEmpty: '本周还没有可保存的内容。请先完成至少一组。',
+    startNewWeekSavingOff: '目前无法保存（已保存的训练记录无法读取），因此不能开始新的一周。',
+    startNewWeekPastWeek: '这是历史中的过去一周，无法更改。',
+    startNewWeekFailed: '无法在这台手机上保存新的一周，因此没有做任何更改。',
+    updatedFromOtherTab: '已从另一个标签页更新，您在此页的最后一次更改未保存。',
+    weekStartedElsewhere: '已从另一个标签页更新：那里已经开始了新的一周。',
+    dismissNotice: '关闭提示',
   },
 };
 
