@@ -7,8 +7,9 @@ import { Cycle } from '../lib/model';
 import { StartWeekResult } from '../lib/store/appDataStore';
 import { WeightUnit } from '../lib/units';
 import { StartNewWeek, StartNewWeekAvailability } from './StartNewWeek';
-import { buildWeeklyReport, TopSet, WeeklyReport } from '../lib/weeklyReport';
-import { formatDay, formatDayRange, localDateStamp } from '../lib/weeks';
+import { buildWeeklyReport, WeeklyReport } from '../lib/weeklyReport';
+import { localDateStamp } from '../lib/weeks';
+import { reportDayHeading, topSetText, weekCaption } from '../lib/reportText';
 import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale } from 'lucide-react';
 
 interface WeeklyReportModalProps {
@@ -35,35 +36,9 @@ const waitForExportCopy = async (ref: React.RefObject<HTMLDivElement | null>): P
   throw new Error('The image copy of the report was not ready');
 };
 
-// "Week 3 · 28 Sept – 4 Oct 2026" for a finished week, "Week 3 · since 28 Sept 2026" for the current one
-const weekCaption = (cycle: Cycle, weekNumber: number, lang: Language, t: UiTranslations) => {
-  const dates = cycle.endedAt
-    ? formatDayRange(cycle.startedAt, cycle.endedAt, lang)
-    : (() => {
-        const start = formatDay(cycle.startedAt, lang);
-        return start ? t.weekSince(start) : null;
-      })();
-  return `${t.weekLabel(weekNumber)} · ${dates ?? t.weekDatesUnknown}`;
-};
-
-// The best ticked set as text: "62.5 kg × 6", "BW × 12", "3 sets ✓", or "—" when nothing was ticked
-const topSetText = (top: TopSet, unit: WeightUnit, t: UiTranslations) => {
-  switch (top.kind) {
-    case 'none':
-      return '—';
-    case 'ticked':
-      return t.reportSetsTicked(top.sets);
-    case 'bodyweight':
-      return `BW × ${top.reps}`;
-    case 'weight':
-      return top.reps > 0 ? `${top.weightText} ${unit} × ${top.reps}` : `${top.weightText} ${unit}`;
-  }
-};
-
 interface DaySummary {
   dayId: string;
-  dayNumber: number;
-  dayTitle: string;
+  heading: string; // "Day 1: Upper A" / "第一天：上肢 A"
   exercises: { id: string; name: string; topText: string; ticked: boolean }[];
 }
 
@@ -98,7 +73,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ cardRef, t, caption, report, pr
         </div>
         <div>
           <h3 className="text-xs font-black uppercase tracking-widest text-zinc-300 font-['Plus_Jakarta_Sans']">
-            MARCUS HYPERTROPHY
+            {t.reportBrand}
           </h3>
           <span className="text-[10px] text-zinc-500 font-semibold">{t.appSubTitle}</span>
         </div>
@@ -106,7 +81,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ cardRef, t, caption, report, pr
 
       <div className="text-right">
         <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-          {progressPercent}% Cleared
+          {t.reportCleared(progressPercent)}
         </span>
       </div>
     </div>
@@ -183,9 +158,9 @@ const ReportCard: React.FC<ReportCardProps> = ({ cardRef, t, caption, report, pr
           <div key={day.dayId} className="bg-[#111114] border border-[#222227] rounded-xl p-2.5">
             <div className="flex items-center justify-between border-b border-[#1f1f25] pb-1 mb-1.5">
               <span className="text-[10px] font-extrabold text-emerald-400 font-['Plus_Jakarta_Sans']">
-                Day {day.dayNumber}: {day.dayTitle}
+                {day.heading}
               </span>
-              <span className="text-[9px] text-zinc-500">{day.exercises.length} Exercises</span>
+              <span className="text-[9px] text-zinc-500">{t.exerciseCount(day.exercises.length)}</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
@@ -248,8 +223,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
     const zhDay = dayTranslationsZh[day.id];
     return {
       dayId: day.id,
-      dayNumber: day.dayNumber,
-      dayTitle: lang === 'zh' && zhDay ? zhDay.title : day.title,
+      heading: reportDayHeading(day.dayNumber, lang === 'zh' && zhDay ? zhDay.title : day.title, lang, t),
       exercises: day.exercises.map((ex, exerciseIndex) => {
         const zhEx = exerciseTranslationsZh[ex.id];
         const { top } = report.days[dayIndex].exercises[exerciseIndex];

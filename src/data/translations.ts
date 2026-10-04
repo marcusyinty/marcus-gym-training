@@ -125,6 +125,9 @@ export interface UiTranslations {
   historyEmptyHint: string;
   historyUnreadable: string;
   historyRowSets: (n: number) => string;
+  reportBrand: string;
+  reportCleared: (percent: number) => string;
+  bodyweightShort: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -259,6 +262,9 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     historyEmptyHint: 'When you start a new week, the finished week appears here.',
     historyUnreadable: "Your saved weeks couldn't be read right now, so they can't be shown.",
     historyRowSets: (n) => `${n} ticked ${n === 1 ? 'set' : 'sets'}`,
+    reportBrand: 'MARCUS HYPERTROPHY',
+    reportCleared: (percent) => `${percent}% Cleared`,
+    bodyweightShort: 'BW',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -386,6 +392,9 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     historyEmptyHint: '开始新的一周后，已完成的一周会显示在这里。',
     historyUnreadable: '目前无法读取已保存的周记录，因此无法显示。',
     historyRowSets: (n) => `${n} 组已完成`,
+    reportBrand: 'MARCUS 增肌站',
+    reportCleared: (percent) => `完成 ${percent}%`,
+    bodyweightShort: '自重',
   },
 };
 
