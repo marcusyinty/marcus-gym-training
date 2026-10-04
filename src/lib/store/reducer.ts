@@ -17,7 +17,9 @@ export type StoreAction =
   | { type: 'setTag'; slotId: string; setIndex: number; tag: SetTag | null }
   | { type: 'resetDay'; slotIds: string[] }
   | { type: 'resetAll' }
-  | { type: 'markReportShown'; cycleId: string };
+  | { type: 'markReportShown'; cycleId: string }
+  // a restored backup (already checked with validateV3) replaces everything
+  | { type: 'replaceAll'; data: AppDataV3 };
 
 export interface ReducerContext {
   now: Date;
@@ -109,6 +111,9 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
 
     case 'resetAll':
       return { ...state, currentCycle: { ...state.currentCycle, slots: {} } };
+
+    case 'replaceAll':
+      return { ...action.data };
 
     case 'markReportShown':
       if (state.reportShownCycleIds.includes(action.cycleId)) return state;

@@ -43,6 +43,34 @@ export interface UiTranslations {
   soundOn: string;
   soundOff: string;
   storageErrorBanner: string;
+  dataSectionTitle: string;
+  dataSectionText: string;
+  backupButton: string;
+  restoreButton: string;
+  backupUnavailable: string;
+  backupSaved: (fileName: string) => string;
+  restoreConfirmTitle: string;
+  restoreFromFile: string;
+  restoreOnPhone: string;
+  restoreBackupDate: (date: string) => string;
+  restoreUnknownDate: string;
+  restoreCounts: (weeks: number, sets: number) => string;
+  restoreDropped: string;
+  restoreWarning: string;
+  restoreConfirmButton: string;
+  restoreDone: string;
+  restoreErrors: {
+    tooLarge: string;
+    notJson: string;
+    wrongApp: string;
+    wrongVersion: string;
+    missingData: string;
+    invalidData: string;
+    readFailed: string;
+    safetyCopyFailed: string;
+    saveFailed: string;
+    noStorage: string;
+  };
   dayCompleteTitle: (dayNum: number) => string;
   dayCompleteText: (dayTitle: string) => string;
   footerTitle: string;
@@ -120,6 +148,35 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     soundOff: 'Sound off',
     storageErrorBanner:
       "We couldn't read your saved workouts, so nothing will be saved this session. Your data is not deleted. Please reload.",
+    dataSectionTitle: 'Your data',
+    dataSectionText: 'Your workouts are saved only on this phone. Save a backup file now and then.',
+    backupButton: 'Back up my data',
+    restoreButton: 'Restore from backup',
+    backupUnavailable:
+      "Backup is off for now: your saved workouts couldn't be read, so the file would be empty. You can still restore a backup.",
+    backupSaved: (fileName) => `Saved ${fileName}. Look for it in your Downloads.`,
+    restoreConfirmTitle: 'Replace the data on this phone?',
+    restoreFromFile: 'Backup file',
+    restoreOnPhone: 'On this phone now',
+    restoreBackupDate: (date) => `Made ${date}`,
+    restoreUnknownDate: 'Date unknown',
+    restoreCounts: (weeks, sets) => `${weeks} ${weeks === 1 ? 'week' : 'weeks'} · ${sets} ticked ${sets === 1 ? 'set' : 'sets'}`,
+    restoreDropped: "Some damaged parts of the file can't be used and will be left out.",
+    restoreWarning: 'This replaces the workout data now on this phone. A safety copy of the current data is kept on this phone.',
+    restoreConfirmButton: 'Replace my data',
+    restoreDone: 'Done! Your workouts were restored from the backup.',
+    restoreErrors: {
+      tooLarge: 'This file is too large (over 5 MB) to be a backup.',
+      notJson: "This file can't be read as a backup.",
+      wrongApp: "This file isn't a backup from this app.",
+      wrongVersion: 'This backup comes from an unknown version of the app.',
+      missingData: 'This backup file contains no workout data.',
+      invalidData: "The workout data in this file can't be used.",
+      readFailed: "The file couldn't be opened.",
+      safetyCopyFailed: "A safety copy of your current data couldn't be saved, so nothing was changed.",
+      saveFailed: "The restored data couldn't be saved on this phone, so nothing was changed.",
+      noStorage: 'This browser blocks saving data, so nothing was changed.',
+    },
     dayCompleteTitle: (dayNum) => `Day ${dayNum} Complete! 🎉`,
     dayCompleteText: (dayTitle) =>
       `Outstanding work on ${dayTitle}. Fuel up with protein and rest up for your next training session.`,
@@ -196,6 +253,34 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     soundOn: '声音开',
     soundOff: '声音关',
     storageErrorBanner: '无法读取已保存的训练记录，本次使用期间不会保存任何内容。您的数据没有被删除，请刷新页面。',
+    dataSectionTitle: '我的数据',
+    dataSectionText: '训练记录只保存在这台手机上。请不时保存一份备份文件。',
+    backupButton: '备份我的数据',
+    restoreButton: '从备份恢复',
+    backupUnavailable: '暂时无法备份：已保存的训练记录无法读取，备份文件会是空的。您仍然可以从备份恢复。',
+    backupSaved: (fileName) => `已保存 ${fileName}，请在“下载”中查看。`,
+    restoreConfirmTitle: '用备份替换这台手机上的数据？',
+    restoreFromFile: '备份文件',
+    restoreOnPhone: '这台手机上现有',
+    restoreBackupDate: (date) => `备份时间：${date}`,
+    restoreUnknownDate: '备份时间未知',
+    restoreCounts: (weeks, sets) => `${weeks} 周 · ${sets} 组已完成`,
+    restoreDropped: '文件中有部分损坏的内容无法使用，将被略过。',
+    restoreWarning: '这会替换这台手机上现有的训练数据。当前数据会在手机上保留一份安全副本。',
+    restoreConfirmButton: '替换我的数据',
+    restoreDone: '完成！训练记录已从备份恢复。',
+    restoreErrors: {
+      tooLarge: '文件太大（超过 5 MB），不是有效的备份。',
+      notJson: '无法读取这个文件，它不是有效的备份。',
+      wrongApp: '这个文件不是本应用的备份。',
+      wrongVersion: '这个备份来自未知版本的应用。',
+      missingData: '这个备份文件里没有训练数据。',
+      invalidData: '文件中的训练数据无法使用。',
+      readFailed: '无法打开这个文件。',
+      safetyCopyFailed: '无法保存当前数据的安全副本，因此没有做任何更改。',
+      saveFailed: '无法在这台手机上保存恢复的数据，因此没有做任何更改。',
+      noStorage: '此浏览器禁止保存数据，因此没有做任何更改。',
+    },
     dayCompleteTitle: (dayNum) => `第 ${dayNum} 天训练打卡完成！🎉`,
     dayCompleteText: (dayTitle) => `【${dayTitle}】训练顺利完成！及时补充蛋白质与碳水，保持充足休息。`,
     footerTitle: 'Marcus 5天美学形体增肌训练系统',
