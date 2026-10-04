@@ -16,6 +16,7 @@ import { languageItem, restSoundItem, weightUnitItem } from './lib/savedData';
 import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
 import { unlockRestSound } from './lib/restAlert';
 import { completedIndexes, cycleProgress, previousBest, setDetails } from './lib/store/selectors';
+import { shouldAutoOpenReport } from './lib/store/reportAutoOpen';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle } from 'lucide-react';
 
@@ -27,7 +28,7 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, source: dataSource, dispatch } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, dispatch } = useAppData();
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -66,20 +67,29 @@ export const App: React.FC = () => {
   const completedDaysCount = progress.completedDays;
 
   // Auto-open the weekly report once per week: only when the week goes from incomplete to complete during
-  // this session and its report was not shown before (saved in reportShownCycleIds). The ref starts from
-  // the loaded data, so a page load never counts as a change.
+  // this session and its report was not shown before (saved in reportShownCycleIds). The refs start from
+  // the loaded data, so a page load never counts as a change; data replaced as a whole (restored backup,
+  // another tab's save) never opens it either.
   const isWeekComplete = totalProgramSets > 0 && totalCompletedSets === totalProgramSets;
   const wasWeekCompleteRef = useRef(isWeekComplete);
+  const lastReplacedCountRef = useRef(replacedCount);
   const currentCycleId = appData.currentCycle.id;
   const isReportAlreadyShown = appData.reportShownCycleIds.includes(currentCycleId);
 
   useEffect(() => {
-    if (isWeekComplete && !wasWeekCompleteRef.current && !isReportAlreadyShown) {
+    const open = shouldAutoOpenReport({
+      wasComplete: wasWeekCompleteRef.current,
+      isComplete: isWeekComplete,
+      alreadyShown: isReportAlreadyShown,
+      dataReplaced: replacedCount !== lastReplacedCountRef.current,
+    });
+    if (open) {
       setIsWeeklyReportOpen(true);
       dispatch({ type: 'markReportShown', cycleId: currentCycleId });
     }
     wasWeekCompleteRef.current = isWeekComplete;
-  }, [isWeekComplete]);
+    lastReplacedCountRef.current = replacedCount;
+  }, [isWeekComplete, replacedCount]);
 
   // Handler: Toggle set completion
   // Starts the rest after a tick. Only the user's tap reaches this, so loading, other-tab sync and
@@ -174,8 +184,9 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl mx-auto px-4 pt-3 pb-6 md:pt-6 w-full">
-        {/* Saved workouts could not be read: the app runs in memory and saves nothing this session */}
-        {dataSource === 'error' && (
+        {/* Saved workouts could not be read: the app runs in memory and saves nothing this session
+            (until a backup is restored) */}
+        {savingDisabled && (
           <div
             role="status"
             className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-snug text-amber-200"

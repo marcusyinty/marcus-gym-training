@@ -1,14 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppDataV3 } from '../model';
 import { StorageLike } from '../storage';
 import { createAppDataStore } from './appDataStore';
-import { STORAGE_KEY_V3 } from './dataV3';
+import { PRE_RESTORE_PREFIX } from './backup';
+import { BACKUP_KEY_V3, STORAGE_KEY_V3 } from './dataV3';
 import { completedIndexes, previousBest, setDetails } from './selectors';
 
+// Like localStorage (incl. key/length/removeItem); records every write and removal
 class MemoryStorage implements StorageLike {
   data = new Map<string, string>();
   writes: string[] = [];
+  removed: string[] = [];
   constructor(initial: Record<string, string> = {}) {
     for (const [k, v] of Object.entries(initial)) this.data.set(k, v);
+  }
+  get length() {
+    return this.data.size;
+  }
+  key(i: number) {
+    return [...this.data.keys()][i] ?? null;
   }
   getItem(key: string) {
     return this.data.has(key) ? this.data.get(key)! : null;
@@ -16,6 +26,10 @@ class MemoryStorage implements StorageLike {
   setItem(key: string, value: string) {
     this.writes.push(key);
     this.data.set(key, value);
+  }
+  removeItem(key: string) {
+    this.removed.push(key);
+    this.data.delete(key);
   }
   snapshot() {
     return Object.fromEntries([...this.data.entries()].sort());
@@ -194,5 +208,157 @@ describe('storage blocked', () => {
     store.dispatch(tick('bench', 0));
     vi.advanceTimersByTime(1000);
     expect([store.source, completedIndexes(store.getState(), 'bench')]).toEqual(['fresh', [0]]);
+  });
+});
+
+describe('restore from a backup', () => {
+  // A backup's data (as parseBackupFile returns it): one archived week, two ticked sets
+  const BACKUP_DATA: AppDataV3 = {
+    schemaVersion: 3,
+    currentCycle: {
+      id: 'restored-week',
+      startedAt: '2026-09-28T06:00:00.000Z',
+      slots: { rdl: { slotId: 'rdl', exerciseId: 'rdl', performedExerciseId: 'rdl', sets: { 0: { weight: '100', reps: '5', unit: 'kg', done: true } } } },
+    },
+    archivedCycles: [
+      { id: 'old-week', startedAt: '2026-09-21T06:00:00.000Z', endedAt: '2026-09-27T20:00:00.000Z', slots: { squat: { slotId: 'squat', exerciseId: 'squat', performedExerciseId: 'squat', sets: { 0: { weight: '80', reps: '8', unit: 'kg', done: true } } } } },
+    ],
+    bests: { rdl: { weight: '100', reps: '5', unit: 'kg' } },
+    reportShownCycleIds: ['old-week'],
+  };
+  const OTHER_KEYS = { aesthetic_recomp_unit_v1: 'lbs', aesthetic_recomp_rest_sound_v1: 'off', [BACKUP_KEY_V3]: 'an older raw backup' };
+  // A clock that moves on 1 minute per call, so every safety copy gets its own time
+  const movingClock = () => {
+    let minute = 0;
+    return () => new Date(Date.UTC(2026, 9, 4, 8, minute++));
+  };
+  const safetyCopies = (storage: MemoryStorage) => [...storage.data.keys()].filter((k) => k.startsWith(PRE_RESTORE_PREFIX)).sort();
+
+  it('keeps a copy of the latest saved data (incl. a change still waiting), then saves the backup right away', () => {
+    const storage = new MemoryStorage({ ...V2_RECORDED, ...OTHER_KEYS });
+    createAppDataStore(options(storage)).saveMigrated();
+    const store = createAppDataStore({ ...options(storage), now: movingClock() });
+    store.dispatch(tick('bench', 0)); // not saved yet (300ms)
+    const latest = JSON.stringify(store.getState());
+    let notified = 0;
+    store.subscribe(() => notified++);
+
+    expect(store.restore(BACKUP_DATA)).toEqual({ ok: true });
+    const [copy] = safetyCopies(storage);
+    expect(safetyCopies(storage)).toHaveLength(1);
+    expect(storage.getItem(copy)).toBe(latest);
+    expect(JSON.parse(storage.getItem(STORAGE_KEY_V3)!)).toEqual(BACKUP_DATA);
+    expect(store.getState()).toEqual(BACKUP_DATA);
+    expect([notified, store.getReplacedCount(), store.isSavingDisabled()]).toEqual([1, 1, false]);
+    vi.advanceTimersByTime(1000); // the old waiting change never comes back
+    expect(JSON.parse(storage.getItem(STORAGE_KEY_V3)!)).toEqual(BACKUP_DATA);
+    expect(v2Snapshot(storage)).toEqual(Object.values(V2_RECORDED));
+    for (const [k, v] of Object.entries(OTHER_KEYS)) expect(storage.getItem(k)).toBe(v);
+
+    store.dispatch(tick('rdl', 1)); // saving goes on as normal
+    vi.advanceTimersByTime(300);
+    expect(completedIndexes(JSON.parse(storage.getItem(STORAGE_KEY_V3)!), 'rdl')).toEqual([0, 1]);
+  });
+
+  it('keeps only the 3 newest safety copies; nothing else is removed', () => {
+    const storage = new MemoryStorage({ ...V2_RECORDED, ...OTHER_KEYS });
+    const store = createAppDataStore({ ...options(storage), now: movingClock() });
+    store.saveMigrated();
+    const texts: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      texts.push(storage.getItem(STORAGE_KEY_V3)!);
+      expect(store.restore({ ...BACKUP_DATA, bests: { [`ex-${i}`]: { weight: String(i + 1), reps: '1', unit: 'kg' } } }).ok).toBe(true);
+    }
+    const copies = safetyCopies(storage);
+    expect(copies.map((k) => storage.getItem(k))).toEqual(texts.slice(2)); // the 3 newest, oldest first
+    expect(storage.removed).toEqual([...storage.removed].filter((k) => k.startsWith(PRE_RESTORE_PREFIX)));
+    expect(storage.removed).toHaveLength(2);
+    expect(v2Snapshot(storage)).toEqual(Object.values(V2_RECORDED));
+    for (const [k, v] of Object.entries(OTHER_KEYS)) expect(storage.getItem(k)).toBe(v);
+  });
+
+  it('nothing saved yet: no safety copy, the backup is saved', () => {
+    const storage = new MemoryStorage({ language_preference: 'en' });
+    const store = createAppDataStore(options(storage));
+    expect(store.restore(BACKUP_DATA)).toEqual({ ok: true });
+    expect(storage.writes).toEqual([STORAGE_KEY_V3]);
+    expect(storage.getItem('language_preference')).toBe('en');
+  });
+
+  it('in an error session: keeps the unreadable text, saves the backup and turns saving back on', () => {
+    const storage = new MemoryStorage({ ...V2_RECORDED, [STORAGE_KEY_V3]: 'not json' });
+    const store = createAppDataStore(options(storage, () => { throw new Error('no ids'); }));
+    expect([store.source, store.isSavingDisabled()]).toEqual(['error', true]);
+    store.dispatch(tick('bench', 0)); // in memory only
+    vi.advanceTimersByTime(1000);
+    expect(storage.writes).toEqual([]);
+
+    expect(store.restore(BACKUP_DATA)).toEqual({ ok: true });
+    expect(safetyCopies(storage).map((k) => storage.getItem(k))).toEqual(['not json']);
+    expect(JSON.parse(storage.getItem(STORAGE_KEY_V3)!)).toEqual(BACKUP_DATA);
+    expect(store.isSavingDisabled()).toBe(false);
+    store.dispatch(tick('rdl', 1));
+    vi.advanceTimersByTime(300);
+    expect(completedIndexes(JSON.parse(storage.getItem(STORAGE_KEY_V3)!), 'rdl')).toEqual([0, 1]);
+    expect(v2Snapshot(storage)).toEqual(Object.values(V2_RECORDED));
+  });
+
+  it('storage full or blocked: nothing changes', () => {
+    const fullFor = (failKey: (key: string) => boolean) => {
+      const storage = new MemoryStorage({ ...V2_RECORDED });
+      createAppDataStore(options(storage)).saveMigrated();
+      storage.setItem = (key, value) => {
+        if (failKey(key)) throw new DOMException('full', 'QuotaExceededError');
+        storage.data.set(key, value);
+      };
+      return storage;
+    };
+    const cases = [
+      { storage: fullFor((k) => k.startsWith(PRE_RESTORE_PREFIX)), error: 'safetyCopyFailed' },
+      { storage: fullFor((k) => k === STORAGE_KEY_V3), error: 'saveFailed' },
+    ];
+    for (const { storage, error } of cases) {
+      const store = createAppDataStore(options(storage));
+      const before = store.getState();
+      const savedBefore = storage.getItem(STORAGE_KEY_V3);
+      let notified = 0;
+      store.subscribe(() => notified++);
+      expect(store.restore(BACKUP_DATA)).toEqual({ ok: false, error });
+      expect([store.getState(), storage.getItem(STORAGE_KEY_V3), notified, store.getReplacedCount()]).toEqual([before, savedBefore, 0, 0]);
+      expect(v2Snapshot(storage)).toEqual(Object.values(V2_RECORDED));
+    }
+
+    const unreadable = new MemoryStorage();
+    const store = createAppDataStore(options(unreadable));
+    unreadable.getItem = () => { throw new Error('blocked'); };
+    expect(store.restore(BACKUP_DATA)).toEqual({ ok: false, error: 'safetyCopyFailed' });
+    expect(createAppDataStore(options(null)).restore(BACKUP_DATA)).toEqual({ ok: false, error: 'noStorage' });
+  });
+
+  it('an error session stays in error mode when the restore fails', () => {
+    const storage = new MemoryStorage({ ...V2_RECORDED });
+    const store = createAppDataStore(options(storage, () => { throw new Error('no ids'); }));
+    storage.setItem = () => { throw new DOMException('full', 'QuotaExceededError'); };
+    expect(store.restore(BACKUP_DATA)).toEqual({ ok: false, error: 'saveFailed' });
+    expect(store.isSavingDisabled()).toBe(true);
+  });
+
+  it('other tabs adopt the restored data (counted as replaced); an error-session tab ignores it', () => {
+    const shared = new MemoryStorage({ ...V2_RECORDED });
+    createAppDataStore(options(shared)).saveMigrated();
+    const tabA = createAppDataStore({ ...options(shared), now: movingClock() });
+    const tabB = createAppDataStore(options(shared));
+    expect(tabA.restore(BACKUP_DATA).ok).toBe(true);
+    const writesAfterRestore = shared.writes.length;
+    tabB.receiveExternal(shared.getItem(STORAGE_KEY_V3)); // what the "storage" event delivers
+    vi.advanceTimersByTime(1000);
+    tabB.flush();
+    expect([tabB.getState(), tabB.getReplacedCount(), shared.writes.length]).toEqual([BACKUP_DATA, 1, writesAfterRestore]);
+
+    const errorShared = new MemoryStorage({ ...V2_RECORDED });
+    const errorTab = createAppDataStore(options(errorShared, () => { throw new Error('no ids'); }));
+    const state = errorTab.getState();
+    errorTab.receiveExternal(JSON.stringify(BACKUP_DATA));
+    expect([errorTab.getState(), errorTab.getReplacedCount()]).toEqual([state, 0]);
   });
 });

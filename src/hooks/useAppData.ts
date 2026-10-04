@@ -15,10 +15,14 @@ const makeId = (): string => {
 
 // The app's workout data (one AppDataV3 object). Loaded once; changes go through dispatch and are saved
 // to the v3 key 300ms after the last change, and right away when the page is hidden or closed.
-// Data saved by another open tab is adopted without writing it back.
+// Data saved by another open tab is adopted without writing it back. `restore` replaces everything with a
+// backup's data (keeping a safety copy of the current data first); `replacedCount` goes up whenever the
+// data is replaced as a whole, so the weekly report doesn't pop up for it.
 export function useAppData() {
   const [store] = useState(() => createAppDataStore({ storage: getDefaultStorage(), now: () => new Date(), makeId }));
   const data = useSyncExternalStore(store.subscribe, store.getState);
+  const savingDisabled = useSyncExternalStore(store.subscribe, store.isSavingDisabled);
+  const replacedCount = useSyncExternalStore(store.subscribe, store.getReplacedCount);
 
   useEffect(() => {
     store.saveMigrated();
@@ -36,5 +40,5 @@ export function useAppData() {
     };
   }, [store]);
 
-  return { data, source: store.source, dispatch: store.dispatch };
+  return { data, savingDisabled, replacedCount, dispatch: store.dispatch, restore: store.restore };
 }
