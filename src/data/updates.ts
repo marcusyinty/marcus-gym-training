@@ -13,6 +13,25 @@ export interface LogEntry {
 // Newest first
 export const updateLogs: LogEntry[] = [
   {
+    id: "v1.4.0",
+    date: "October 6, 2026",
+    isoDate: "2026-10-06",
+    timestamp: "06:05",
+    version: "v1.4.0",
+    bullets: {
+      en: [
+        "Body measurements: record weight, waist and hips with a date, see a chart and your changes over time",
+        "Easier to tap: bigger buttons in dialogs and the muscle map",
+        "Fixes: rest timer no longer overlaps buttons in 中文 on small phones, report image footer spacing, and the day description closes when you change day"
+      ],
+      zh: [
+        "身体数据：记录体重、腰围和臀围及日期，查看图表与变化趋势",
+        "更易点按：对话框和肌肉图的按钮更大",
+        "修复：小屏手机中文版休息计时不再与按钮重叠，周报图片页脚间距，切换日期时自动收起说明"
+      ]
+    }
+  },
+  {
     id: "v1.3.0",
     date: "October 5, 2026",
     isoDate: "2026-10-05",

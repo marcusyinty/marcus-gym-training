@@ -90,7 +90,8 @@ export const RestTimerBar: React.FC<RestTimerBarProps> = ({ lang, countdown, sou
               />
             </div>
 
-            <Timer className="w-5 h-5 text-emerald-400 shrink-0" aria-hidden="true" />
+            {/* Decorative; hidden below 360px so the digits never run under +15s / +15秒 */}
+            <Timer className="hidden min-[360px]:block w-5 h-5 text-emerald-400 shrink-0" aria-hidden="true" />
             <div className="flex-1 min-w-0">
               <span className="block text-xs leading-4 font-bold uppercase tracking-wider text-zinc-400">{t.restLabel}</span>
               <span role="timer" aria-label={t.restLabel} className="block text-[28px] leading-8 font-extrabold font-mono tabular-nums text-white">

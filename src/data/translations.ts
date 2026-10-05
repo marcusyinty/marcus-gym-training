@@ -88,6 +88,7 @@ export interface UiTranslations {
   primaryTarget: string;
   secondaryTarget: string;
   hoverMuscleNotice: string;
+  tapMuscleNotice: string;
 
   weeklyReportBtn: string;
   weeklyReportTitle: string;
@@ -155,6 +156,8 @@ export interface UiTranslations {
   remarkRowLabel: (exercise: string, remark: string) => string;
   restoreRemarksKept: string;
   restoreRemarksReplaced: string;
+  restoreBodyKept: string;
+  restoreBodyReplaced: string;
   tagNames: { easy: string; good: string; max: string };
   tagHelp: { easy: string; good: string; max: string };
   tagNone: string;
@@ -168,6 +171,59 @@ export interface UiTranslations {
   setResultTicked: string;
   lastTimeLine: (date: string | null, result: string) => string;
   reportMaxOnSets: (setNumbers: number[]) => string;
+  bodyTitle: string;
+  bodyButtonLabel: string;
+  bodyButton: (n: number) => string;
+  bodyPrivate: string;
+  bodyAddEntry: string;
+  bodyEditEntry: string;
+  bodyDate: string;
+  bodyWeight: string;
+  bodyWaist: string;
+  bodyHips: string;
+  bodyOptional: string;
+  bodySave: string;
+  bodySaved: string;
+  bodyDeleted: string;
+  bodyReplaceQuestion: (day: string) => string;
+  bodyReplaceHas: (values: string) => string;
+  bodyReplace: string;
+  bodyDeleteQuestion: (day: string) => string;
+  bodyDelete: string;
+  bodyEditLabel: (day: string) => string;
+  bodyDeleteLabel: (day: string) => string;
+  bodyEntries: (n: number) => string;
+  bodyNoEntries: string;
+  bodyShowMore: (n: number) => string;
+  bodyHeight: string;
+  bodyHeightNotSet: string;
+  bodyEdit: string;
+  bodyRemove: string;
+  bodyWaistShort: (value: string) => string;
+  bodyHipsShort: (value: string) => string;
+  bodyProblem: {
+    badDay: string;
+    future: string;
+    required: string;
+    notNumber: string;
+    outOfRange: (field: 'weight' | 'waist' | 'hips' | 'height', low: string, high: string, unit: string) => string;
+  };
+  bodyAtCap: string;
+  bodyChartTitle: string;
+  bodyChartEmpty: string;
+  bodyChartOne: string;
+  bodyChartFew: string;
+  bodyRangeLabel: string;
+  bodyRanges: Record<'30' | '90' | 'all', string>;
+  bodyRangeAria: Record<'30' | '90' | 'all', string>;
+  bodyLegendEntries: string;
+  bodyLegendAverage: string;
+  bodyAverageLater: string;
+  bodyLatest: (value: string, day: string) => string;
+  bodySinceFirst: (day: string, change: string) => string;
+  bodyLast30: (change: string, from: string, to: string) => string;
+  bodyLast30NotEnough: string;
+  bodyChartAria: (range: string, n: number, from: string, to: string, low: string, high: string) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -217,7 +273,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     storageErrorBanner:
       "We couldn't read your saved workouts, so nothing will be saved this session. Your data is not deleted. Please reload.",
     dataSectionTitle: 'Your data',
-    dataSectionText: 'Your workouts are saved only on this phone. Save a backup file now and then.',
+    dataSectionText: 'Your workouts and body measurements are saved only on this phone. Save a backup file now and then; it includes both.',
     backupButton: 'Back up my data',
     restoreButton: 'Restore from backup',
     backupUnavailable:
@@ -264,6 +320,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     primaryTarget: 'Primary',
     secondaryTarget: 'Secondary',
     hoverMuscleNotice: 'Hover muscle',
+    tapMuscleNotice: 'Tap a muscle',
 
     weeklyReportBtn: 'Weekly Report',
     weeklyReportTitle: 'WEEKLY COMPLETION REPORT',
@@ -331,6 +388,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     remarkSave: 'Save',
     restoreRemarksKept: 'Your saved remarks will be kept.',
     restoreRemarksReplaced: 'Your saved remarks will be replaced.',
+    restoreBodyKept: 'Your body measurements will be kept.',
+    restoreBodyReplaced: 'Your body measurements will be replaced.',
     remarkRowLabel: (exercise, remark) => (remark ? `Note for ${exercise}: ${remark}` : `Add a note for ${exercise}`),
     tagNames: { easy: 'Easy', good: 'Good', max: 'Max' },
     tagHelp: {
@@ -349,6 +408,60 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setResultTicked: 'done',
     lastTimeLine: (date, result) => (date ? `Last (${date}): ${result}` : `Last: ${result}`),
     reportMaxOnSets: (setNumbers) => `Max on ${setNumbers.length === 1 ? 'set' : 'sets'} ${setNumbers.join(', ')}`,
+    bodyTitle: 'Body',
+    bodyButtonLabel: 'Body measurements',
+    bodyButton: (n) => `Body (${n})`,
+    bodyPrivate: 'Saved only on this phone. Nothing is sent anywhere.',
+    bodyAddEntry: 'Add entry',
+    bodyEditEntry: 'Edit entry',
+    bodyDate: 'Date',
+    bodyWeight: 'Weight',
+    bodyWaist: 'Waist',
+    bodyHips: 'Hips',
+    bodyOptional: 'optional',
+    bodySave: 'Save entry',
+    bodySaved: 'Saved.',
+    bodyDeleted: 'Deleted.',
+    bodyReplaceQuestion: (day) => `Replace the entry for ${day}?`,
+    bodyReplaceHas: (values) => `It has ${values}.`,
+    bodyReplace: 'Replace',
+    bodyDeleteQuestion: (day) => `Delete the entry for ${day}?`,
+    bodyDelete: 'Delete',
+    bodyEditLabel: (day) => `Edit the entry for ${day}`,
+    bodyDeleteLabel: (day) => `Delete the entry for ${day}`,
+    bodyEntries: (n) => `Entries (${n})`,
+    bodyNoEntries: 'No entries yet. Add your first one above.',
+    bodyShowMore: (n) => `Show ${n} more`,
+    bodyHeight: 'Height',
+    bodyHeightNotSet: 'Not set',
+    bodyEdit: 'Edit',
+    bodyRemove: 'Remove',
+    bodyWaistShort: (value) => `waist ${value}`,
+    bodyHipsShort: (value) => `hips ${value}`,
+    bodyProblem: {
+      badDay: 'Choose a valid date.',
+      future: "The date can't be in the future.",
+      required: 'Enter your weight.',
+      notNumber: 'Use numbers only, e.g. 72.4 or 72,4.',
+      outOfRange: (field, low, high, unit) => `${{ weight: 'Weight', waist: 'Waist', hips: 'Hips', height: 'Height' }[field]} must be between ${low} and ${high} ${unit}.`,
+    },
+    bodyAtCap: 'You have 2,000 entries, the most this app keeps. Delete old entries to add new ones.',
+    bodyChartTitle: 'Weight trend',
+    bodyChartEmpty: 'Your weight chart appears here once you add entries.',
+    bodyChartOne: 'Add an entry for another day to see the chart.',
+    bodyChartFew: 'Fewer than 2 entries in this range. Pick a longer range.',
+    bodyRangeLabel: 'Chart range',
+    bodyRanges: { '30': '30 days', '90': '90 days', all: 'All' },
+    bodyRangeAria: { '30': 'last 30 days', '90': 'last 90 days', all: 'all entries' },
+    bodyLegendEntries: 'Entry',
+    bodyLegendAverage: '7-entry average',
+    bodyAverageLater: 'The 7-entry average line appears from your 7th entry.',
+    bodyLatest: (value, day) => `Latest: ${value} (${day})`,
+    bodySinceFirst: (day, change) => `Since first entry (${day}): ${change}`,
+    bodyLast30: (change, from, to) => `Last 30 days: ${change} (${from} → ${to})`,
+    bodyLast30NotEnough: 'Last 30 days: not enough entries',
+    bodyChartAria: (range, n, from, to, low, high) =>
+      `Weight chart, ${range}: ${n} entries from ${from} to ${to}, between ${low} and ${high}. Every entry is in the list below.`,
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -394,7 +507,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     soundOff: '声音关',
     storageErrorBanner: '无法读取已保存的训练记录，本次使用期间不会保存任何内容。您的数据没有被删除，请刷新页面。',
     dataSectionTitle: '我的数据',
-    dataSectionText: '训练记录只保存在这台手机上。请不时保存一份备份文件。',
+    dataSectionText: '训练记录和身体数据只保存在这台手机上。请不时保存一份备份文件，两者都会包含在内。',
     backupButton: '备份我的数据',
     restoreButton: '从备份恢复',
     backupUnavailable: '暂时无法备份：已保存的训练记录无法读取，备份文件会是空的。您仍然可以从备份恢复。',
@@ -439,6 +552,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     primaryTarget: '主目标',
     secondaryTarget: '辅目标',
     hoverMuscleNotice: '悬停查看肌群',
+    tapMuscleNotice: '点按肌肉查看',
 
     weeklyReportBtn: '本周战报',
     weeklyReportTitle: '本周训练完成战报',
@@ -505,6 +619,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     remarkSave: '保存',
     restoreRemarksKept: '您保存的备注会保留。',
     restoreRemarksReplaced: '您保存的备注会被替换。',
+    restoreBodyKept: '您的身体数据会保留。',
+    restoreBodyReplaced: '您的身体数据会被替换。',
     remarkRowLabel: (exercise, remark) => (remark ? `${exercise} 的备注：${remark}` : `为 ${exercise} 添加备注`),
     tagNames: { easy: '轻松', good: '刚好', max: '极限' },
     tagHelp: {
@@ -523,6 +639,59 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setResultTicked: '已完成',
     lastTimeLine: (date, result) => (date ? `上次（${date}）：${result}` : `上次：${result}`),
     reportMaxOnSets: (setNumbers) => `第 ${setNumbers.join('、')} 组到达极限`,
+    bodyTitle: '身体数据',
+    bodyButtonLabel: '身体数据',
+    bodyButton: (n) => `身体数据（${n}）`,
+    bodyPrivate: '仅保存在这台手机上，不会发送到任何地方。',
+    bodyAddEntry: '添加记录',
+    bodyEditEntry: '编辑记录',
+    bodyDate: '日期',
+    bodyWeight: '体重',
+    bodyWaist: '腰围',
+    bodyHips: '臀围',
+    bodyOptional: '可选',
+    bodySave: '保存记录',
+    bodySaved: '已保存。',
+    bodyDeleted: '已删除。',
+    bodyReplaceQuestion: (day) => `替换 ${day} 的记录？`,
+    bodyReplaceHas: (values) => `该记录为：${values}。`,
+    bodyReplace: '替换',
+    bodyDeleteQuestion: (day) => `删除 ${day} 的记录？`,
+    bodyDelete: '删除',
+    bodyEditLabel: (day) => `编辑 ${day} 的记录`,
+    bodyDeleteLabel: (day) => `删除 ${day} 的记录`,
+    bodyEntries: (n) => `记录（${n}）`,
+    bodyNoEntries: '还没有记录。请在上方添加第一条。',
+    bodyShowMore: (n) => `再显示 ${n} 条`,
+    bodyHeight: '身高',
+    bodyHeightNotSet: '未填写',
+    bodyEdit: '编辑',
+    bodyRemove: '移除',
+    bodyWaistShort: (value) => `腰围 ${value}`,
+    bodyHipsShort: (value) => `臀围 ${value}`,
+    bodyProblem: {
+      badDay: '请选择有效的日期。',
+      future: '日期不能晚于今天。',
+      required: '请输入体重。',
+      notNumber: '只能输入数字，例如 72.4 或 72,4。',
+      outOfRange: (field, low, high, unit) => `${{ weight: '体重', waist: '腰围', hips: '臀围', height: '身高' }[field]}须在 ${low} 到 ${high} ${unit} 之间。`,
+    },
+    bodyAtCap: '已有 2,000 条记录，已达上限。请删除旧记录后再添加。',
+    bodyChartTitle: '体重趋势',
+    bodyChartEmpty: '添加记录后，这里会显示体重图表。',
+    bodyChartOne: '再添加另一天的记录即可看到图表。',
+    bodyChartFew: '此范围内的记录少于 2 条，请选择更长的范围。',
+    bodyRangeLabel: '图表范围',
+    bodyRanges: { '30': '30 天', '90': '90 天', all: '全部' },
+    bodyRangeAria: { '30': '最近 30 天', '90': '最近 90 天', all: '全部记录' },
+    bodyLegendEntries: '每次记录',
+    bodyLegendAverage: '7次记录平均',
+    bodyAverageLater: '从第 7 次记录起显示 7次记录平均线。',
+    bodyLatest: (value, day) => `最新：${value}（${day}）`,
+    bodySinceFirst: (day, change) => `自首次记录（${day}）以来：${change}`,
+    bodyLast30: (change, from, to) => `最近 30 天：${change}（${from} → ${to}）`,
+    bodyLast30NotEnough: '最近 30 天：记录不足',
+    bodyChartAria: (range, n, from, to, low, high) => `体重图表，${range}：${from} 至 ${to} 共 ${n} 条记录，介于 ${low} 与 ${high} 之间。每条记录都列在下方。`,
   },
 };
 

@@ -8,6 +8,7 @@ import { completedSetsItem, previousBestsItem, setDetailsItem, SetDetailsByExerc
 import { backupKeyFor, safeRead, safeWrite, StorageLike } from '../storage';
 import { isAllowedInSlot } from '../exerciseVariants';
 import { cleanRemarks } from '../remarks';
+import { BodyData, cleanBody } from '../body';
 import { isCycleComplete } from './selectors';
 
 export const STORAGE_KEY_V3 = 'aesthetic_recomp_v3';
@@ -145,9 +146,19 @@ export const validateV3 = (raw: unknown): { data: AppDataV3 | null; droppedAny: 
     }
   }
 
+  // Body measurements are optional too: a missing field stays missing; broken entries are dropped
+  let body: BodyData | undefined;
+  if (raw.body !== undefined) {
+    const checked = cleanBody(raw.body);
+    body = checked.body;
+    if (checked.dropped) droppedAny = true;
+  }
+
   const data = { ...raw, schemaVersion: 3, currentCycle: current.value, archivedCycles, bests, reportShownCycleIds } as AppDataV3;
   if (remarks === undefined) delete data.remarks;
   else data.remarks = remarks;
+  if (body === undefined) delete data.body;
+  else data.body = body;
   return {
     data,
     droppedAny,

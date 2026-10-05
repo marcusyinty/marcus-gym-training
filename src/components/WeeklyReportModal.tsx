@@ -209,12 +209,13 @@ const ReportCard: React.FC<ReportCardProps> = ({ cardRef, t, caption, report, pr
     </div>
 
     {/* Marcus Verification Signature Badge */}
-    <div className="flex items-center justify-between border-t border-[#1a1a20] pt-2.5 text-[10px]">
+    <div className="flex items-center justify-between gap-2 border-t border-[#1a1a20] pt-2.5 text-[10px]">
       <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
         <span>{t.verifiedBadge}</span>
       </div>
-      <span className="text-zinc-500 font-mono">marcus-gym-training</span>
+      {/* At the image's width it stays on one line; on narrower phone screens it may wrap, as before */}
+      <span className="text-zinc-500 font-mono @min-[298px]:shrink-0 @min-[298px]:whitespace-nowrap">marcus-gym-training</span>
     </div>
   </div>
 );
@@ -302,9 +303,13 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
         {/* Modal Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-xl bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors z-20"
+          aria-label={t.close}
+          className="group absolute top-2 right-2.5 w-11 h-11 flex items-center justify-center z-20 cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          {/* 44px tap area; the visible 32px square looks as before */}
+          <span className="p-1.5 rounded-xl bg-zinc-800/80 text-zinc-400 group-hover:text-white group-hover:bg-zinc-700 transition-colors">
+            <X className="w-5 h-5" />
+          </span>
         </button>
 
         {/* Scrollable Container */}
@@ -333,7 +338,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
           <button
             onClick={handleDownloadImage}
             disabled={isExporting}
-            className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`w-full min-h-11 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
               isSuccess
                 ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-950/50'
                 : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black shadow-lg shadow-emerald-950/40'

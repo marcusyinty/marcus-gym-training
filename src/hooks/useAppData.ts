@@ -62,5 +62,8 @@ export function useAppData() {
     startNewWeek: store.startNewWeek,
     swapExercise: store.swapExercise,
     setRemark: store.setRemark,
+    saveBodyEntry: store.saveBodyEntry,
+    deleteBodyEntry: store.deleteBodyEntry,
+    setHeight: store.setHeight,
   };
 }

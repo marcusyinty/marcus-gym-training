@@ -3,7 +3,7 @@ import { Language, uiTranslations } from '../data/translations';
 import { AppDataV3 } from '../lib/model';
 import { RestoreResult } from '../lib/store/appDataStore';
 import { createBackupFile, MAX_BACKUP_BYTES, ParsedBackup, parseBackupFile, summarizeData } from '../lib/store/backup';
-import { AlertTriangle, CheckCircle2, Database, Download, History, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Database, Download, History, Ruler, Upload } from 'lucide-react';
 
 type ReadyBackup = Extract<ParsedBackup, { ok: true }>;
 type Message = { tone: 'ok' | 'error'; text: string };
@@ -14,6 +14,7 @@ interface DataBackupSectionProps {
   savingDisabled: boolean;
   onRestore: (data: AppDataV3) => RestoreResult;
   onOpenHistory: () => void;
+  onOpenBody: () => void;
 }
 
 // Reads a picked file as text (File.text() is missing on older phones)
@@ -51,7 +52,7 @@ const formatDate = (iso: string, lang: Language) => {
 
 // "Your data" in the About modal: save all workout data to a backup file, or replace it with one.
 // Nothing changes until the user confirms in the comparison panel; settings are not part of a backup.
-export const DataBackupSection: React.FC<DataBackupSectionProps> = ({ lang, data, savingDisabled, onRestore, onOpenHistory }) => {
+export const DataBackupSection: React.FC<DataBackupSectionProps> = ({ lang, data, savingDisabled, onRestore, onOpenHistory, onOpenBody }) => {
   const t = uiTranslations[lang];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const restoreButtonRef = useRef<HTMLButtonElement>(null);
@@ -152,6 +153,10 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({ lang, data
           <p data-restore-remarks className="text-xs text-zinc-300 leading-relaxed">
             {pending.keepsCurrentRemarks ? t.restoreRemarksKept : t.restoreRemarksReplaced}
           </p>
+          {/* Body measurements: the same rule (a backup made before they existed keeps this phone's) */}
+          <p data-restore-body className="text-xs text-zinc-300 leading-relaxed">
+            {pending.keepsCurrentBody ? t.restoreBodyKept : t.restoreBodyReplaced}
+          </p>
           <p className="flex items-start gap-2 text-xs text-amber-200 leading-relaxed">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-px text-amber-400" />
             <span>{t.restoreWarning}</span>
@@ -199,14 +204,27 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({ lang, data
             <Upload className="w-4 h-4 shrink-0" />
             {t.restoreButton}
           </button>
-          <button
-            type="button"
-            onClick={onOpenHistory}
-            className="w-full min-h-[44px] px-3 flex items-center justify-center gap-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-bold cursor-pointer"
-          >
-            <History className="w-4 h-4 shrink-0" />
-            {t.pastWeeksButton(data.archivedCycles.length)}
-          </button>
+          {/* Past weeks and body measurements: side by side from 360px, stacked below (the 中文 labels would wrap) */}
+          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              className="w-full min-h-[44px] px-2 flex items-center justify-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-bold cursor-pointer"
+            >
+              <History className="w-4 h-4 shrink-0" />
+              {t.pastWeeksButton(data.archivedCycles.length)}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenBody}
+              aria-haspopup="dialog"
+              data-body-open-about
+              className="w-full min-h-[44px] px-2 flex items-center justify-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-xs font-bold cursor-pointer"
+            >
+              <Ruler className="w-4 h-4 shrink-0" />
+              {t.bodyButton(Object.keys(data.body?.entries ?? {}).length)}
+            </button>
+          </div>
         </div>
       )}
 

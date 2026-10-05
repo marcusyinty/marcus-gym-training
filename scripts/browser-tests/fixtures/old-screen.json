@@ -1,0 +1,620 @@
+{
+  "activeLang": "中文",
+  "days": [
+    {
+      "tab": "DAY 1 6 项 第一天：上肢 A 上肢肥大 & 上胸/背阔偏置",
+      "rows": [
+        {
+          "set": "第 1 组",
+          "done": true,
+          "weight": "60",
+          "reps": "8"
+        },
+        {
+          "set": "第 2 组",
+          "done": true,
+          "weight": "62.5",
+          "reps": "6"
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": true,
+          "weight": "135",
+          "reps": "10"
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        }
+      ],
+      "bests": [
+        "上次: 62.5 kg × 6次",
+        "上次: 135 lbs × 10次"
+      ],
+      "monoTexts": [
+        "3 / 18 组",
+        "3 组 | 6–8 次",
+        "3 组 | 8–10 次",
+        "3 组 | 8–10 次",
+        "3 组 | 8–10 次",
+        "2–3 组 | 10–12 次",
+        "2–3 组 | 8–10 次"
+      ]
+    },
+    {
+      "tab": "DAY 2 5 项 第二天：下肢 A 股四头肌 & 腘绳肌基础",
+      "rows": [
+        {
+          "set": "第 1 组",
+          "done": true,
+          "weight": "100",
+          "reps": "5"
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        }
+      ],
+      "bests": [
+        "上次: 100 kg × 5次"
+      ],
+      "monoTexts": [
+        "1 / 15 组",
+        "3 组 | 8–10 次",
+        "3 组 | 8–10 次",
+        "3 组 | 8–10/leg 次",
+        "3 组 | 10–12 次",
+        "3 组 | 12–15 次"
+      ]
+    },
+    {
+      "tab": "DAY 3 6 项 第三天：推特化 (+ 腹肌 A) 胸肌、肩中束、三头肌 & 腹肌下部",
+      "rows": [
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 4 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        }
+      ],
+      "bests": [],
+      "monoTexts": [
+        "0 / 19 组",
+        "3 组 | 8–10 次",
+        "3 组 | 10–12 次",
+        "4 组 | 12–15 次",
+        "3 组 | 10–12 次",
+        "3 组 | 10–15 次",
+        "3 组 | 12–15 次"
+      ]
+    },
+    {
+      "tab": "DAY 4 8 项 第四天：拉特化 (+ 腹肌 B) 背部厚度、肩后束、前臂 & 斜腹肌",
+      "rows": [
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        }
+      ],
+      "bests": [],
+      "monoTexts": [
+        "0 / 22 组",
+        "3 组 | 10–12 次",
+        "2–3 组 | 12–15 次",
+        "3 组 | 12–15 次",
+        "3 组 | 10–12 次",
+        "2 组 | 12–15 次",
+        "2 组 | 12–15 次",
+        "3 组 | 12–16 total 次",
+        "2–3 组 | 10–15 次"
+      ]
+    },
+    {
+      "tab": "DAY 5 5 项 第五天：下肢 B 后链链条 & 股四头肌泵感力竭",
+      "rows": [
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 1 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 2 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        },
+        {
+          "set": "第 3 组",
+          "done": false,
+          "weight": "",
+          "reps": ""
+        }
+      ],
+      "bests": [],
+      "monoTexts": [
+        "0 / 15 组",
+        "3 组 | 8–10 次",
+        "3 组 | 10–12 次",
+        "3 组 | 8–10 次",
+        "3 组 | 12–15 次",
+        "3 组 | 12–15 次"
+      ]
+    }
+  ],
+  "weeklyReport": "MARCUS HYPERTROPHY 5天高效增肌减脂训练指南 2026年10月2日 4% CLEARED 本周训练完成战报 5天增肌分化全满贯总结 完成天数 0/5 打卡组数 4/89 动作项 26 Ex 全周总容量 2,705 kg 各动作极限重量榜 26 Movements Day 1: 第一天：上肢 A 6 Exercises 上斜哑铃卧推 62.5 kg × 6 高位下拉 135 lbs × 10 器械推肩 BW × 12 单臂哑铃划船 BW × 12 绳索三头下压 BW × 12 上斜哑铃旋前弯举 BW × 12 Day 2: 第二天：下肢 A 5 Exercises 倒蹬机 Leg Press 100 kg × 5 罗马尼亚硬拉 (RDL) BW × 12 保加利亚分腿蹲 BW × 12 坐姿腿弯举 BW × 12 站姿提踵 BW × 12 Day 3: 第三天：推特化 (+ 腹肌 A) 6 Exercises 平板哑铃卧推 BW × 12 站姿绳索夹胸 BW × 12 背后绳索侧平举 BW × 12 绳索过顶三头伸展 BW × 12 反向卷腹 BW × 12 下斜卷腹 BW × 12 Day 4: 第四天：拉特化 (+ 腹肌 B) 8 Exercises 坐姿绳索划船 BW × 12 直臂绳索下拉 BW × 12 绳索面拉 BW × 12 哑铃锤式弯举 BW × 12 坐姿哑铃正握腕弯举 BW × 12 坐姿哑铃反握腕弯举 BW × 12 慢速交叉卷腹 (单车卷腹) BW × 12 反向卷腹 BW × 12 Day 5: 第五天：下肢 B 5 Exercises 罗马尼亚硬拉 (RDL) BW × 12 坐姿腿弯举 BW × 12 倒蹬机 Leg Press BW × 12 腿伸展 (踢腿机) BW × 12 45度山羊挺身 (背伸展) BW × 12 \"自律铸就体态。动作标准，未漏一组。下周继续渐进超负荷！\" Marcus 美学增肌认证战报 marcus-gym-training 下载战报图片"
+}

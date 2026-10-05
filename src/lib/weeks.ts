@@ -29,6 +29,15 @@ export const formatDay = (iso: string | undefined, lang: Language): string | nul
   return date ? date.toLocaleDateString(LOCALES[lang], DAY_FORMAT) : null;
 };
 
+// A calendar day saved as "2026-10-05" (body entries): read as a local day, never shifted by the time zone.
+// e.g. "5 Oct 2026" / "2026年10月5日"; short: "5 Oct" / "10月5日". The text itself when it isn't a day.
+export const formatLocalDay = (day: string, lang: Language, short = false): string => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (!match) return day;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return date.toLocaleDateString(LOCALES[lang], short ? { day: 'numeric', month: 'short' } : DAY_FORMAT);
+};
+
 // e.g. "28 Sept" / "9月28日" (no year, for short lines); null when the saved text isn't a readable date
 export const formatShortDay = (iso: string | undefined, lang: Language): string | null => {
   const date = readDate(iso);

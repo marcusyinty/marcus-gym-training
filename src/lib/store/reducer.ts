@@ -8,6 +8,7 @@ import { hasDetail, tickedSetCount } from './selectors';
 import { applySwap, checkSwap } from './swap';
 import { knownExerciseIds } from '../exerciseVariants';
 import { normalizeRemark } from '../remarks';
+import { BodyData, hasBodyData, LengthValue, WeightValue } from '../body';
 
 export type SetTag = 'easy' | 'good' | 'max';
 
@@ -27,7 +28,11 @@ export type StoreAction =
   // which exercise a slot does this week (see swap.ts for the rule); from: the exercise the user saw there
   | { type: 'swapExercise'; cycleId: string; slotId: string; from: string; to: string }
   // a permanent note for an exercise id; empty text deletes it
-  | { type: 'setRemark'; exerciseId: string; text: string };
+  | { type: 'setRemark'; exerciseId: string; text: string }
+  // body measurements (values already checked by the store); previousDay: the day an edited entry had before
+  | { type: 'saveBodyEntry'; day: string; entry: { weight: WeightValue; waist?: LengthValue; hips?: LengthValue }; previousDay?: string }
+  | { type: 'deleteBodyEntry'; day: string }
+  | { type: 'setHeight'; height: LengthValue | null };
 
 export interface ReducerContext {
   now: Date;
@@ -54,6 +59,12 @@ const withSlot = (state: AppDataV3, slot: LoggedSlot): AppDataV3 => ({
 
 const withoutKey = <V>(record: Record<string, V>, key: string): Record<string, V> =>
   Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
+
+// Body data with nothing in it is no field at all (so data without body measurements stays as it was)
+const withBody = (state: AppDataV3, body: BodyData): AppDataV3 => {
+  const { body: _old, ...rest } = state;
+  return hasBodyData(body) ? { ...rest, body } : rest;
+};
 
 // A tag says how a finished set felt, so only a ticked set has one
 const withoutTag = (set: LoggedSet): LoggedSet => {
@@ -134,10 +145,31 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
 
     case 'replaceAll': {
       // A backup made before remarks existed has no remarks field: the phone keeps its own remarks. A backup
-      // with the field (even empty) replaces them. No remarks are kept as no field at all.
-      const { remarks: _ignored, ...rest } = action.data;
+      // with the field (even empty) replaces them. No remarks are kept as no field at all. Body measurements
+      // follow the same rule.
+      const { remarks: _ignored, body: _ignoredBody, ...rest } = action.data;
       const remarks = action.data.remarks === undefined ? state.remarks : action.data.remarks;
-      return remarks && Object.keys(remarks).length > 0 ? { ...rest, remarks } : rest;
+      const body = action.data.body === undefined ? state.body : action.data.body;
+      const withRemarks: AppDataV3 = remarks && Object.keys(remarks).length > 0 ? { ...rest, remarks } : rest;
+      return hasBodyData(body) ? { ...withRemarks, body } : withRemarks;
+    }
+
+    case 'saveBodyEntry': {
+      const current = state.body ?? { entries: {} };
+      const others = action.previousDay !== undefined ? withoutKey(current.entries, action.previousDay) : current.entries;
+      const entry = { ...action.entry, updatedAt: ctx.now.toISOString() };
+      return withBody(state, { ...current, entries: { ...withoutKey(others, action.day), [action.day]: entry } });
+    }
+
+    case 'deleteBodyEntry': {
+      if (!state.body || !hasOwn(state.body.entries, action.day)) return state;
+      return withBody(state, { ...state.body, entries: withoutKey(state.body.entries, action.day) });
+    }
+
+    case 'setHeight': {
+      if (JSON.stringify(state.body?.height ?? null) === JSON.stringify(action.height)) return state;
+      const { height: _old, ...current } = state.body ?? { entries: {} };
+      return withBody(state, action.height ? { ...current, height: action.height } : current);
     }
 
     case 'setRemark': {

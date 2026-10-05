@@ -1,0 +1,7 @@
+# Test output never belongs in git. The tests write screenshots and logs to review-shots/ (ignored at the
+# repo root) and Chrome profiles, downloads and backup files to the system temp folder; this is a safety net.
+*.png
+*.log
+*.zip
+downloads/
+profiles/

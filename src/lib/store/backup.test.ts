@@ -69,7 +69,7 @@ describe('backup file', () => {
     const parsed = parseBackupFile(text);
     expect(parsed).toMatchObject({ ok: true, exportedAt: '2026-10-04T09:30:00.000Z', droppedAny: false });
     if (!parsed.ok) throw new Error('expected ok');
-    expect(parsed.data).toStrictEqual({ ...sample(), remarks: {} }); // a backup always says how many remarks: here none
+    expect(parsed.data).toStrictEqual({ ...sample(), remarks: {}, body: { entries: {} } }); // a backup always says how many remarks and body entries: here none
     expect(JSON.parse(text)).toMatchObject({ app: 'aesthetic-recomp-backup', version: 1, schemaVersion: 3 });
   });
 
@@ -143,7 +143,7 @@ describe('backup file', () => {
     const data: AppDataV3 = { ...sample(), archivedCycles: [week(1), week(2), week(3)], reportShownCycleIds: ['w1', 'w3'] };
     const parsed = parseBackupFile(createBackupFile(data, NOW).text);
     if (!parsed.ok) throw new Error('expected ok');
-    expect(parsed.data).toStrictEqual({ ...data, remarks: {} });
+    expect(parsed.data).toStrictEqual({ ...data, remarks: {}, body: { entries: {} } });
     expect(parsed.data.archivedCycles.map((c) => c.id)).toEqual(['w1', 'w2', 'w3']);
     expect(parsed.summary).toEqual({ weeks: 4, tickedSets: 2 + 3 }); // 2 ticked this week + 1 in each old week
   });
