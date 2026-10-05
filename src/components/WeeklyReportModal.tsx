@@ -209,12 +209,13 @@ const ReportCard: React.FC<ReportCardProps> = ({ cardRef, t, caption, report, pr
     </div>
 
     {/* Marcus Verification Signature Badge */}
-    <div className="flex items-center justify-between border-t border-[#1a1a20] pt-2.5 text-[10px]">
+    <div className="flex items-center justify-between gap-2 border-t border-[#1a1a20] pt-2.5 text-[10px]">
       <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
         <span>{t.verifiedBadge}</span>
       </div>
-      <span className="text-zinc-500 font-mono">marcus-gym-training</span>
+      {/* At the image's width it stays on one line; on narrower phone screens it may wrap, as before */}
+      <span className="text-zinc-500 font-mono @min-[298px]:shrink-0 @min-[298px]:whitespace-nowrap">marcus-gym-training</span>
     </div>
   </div>
 );
