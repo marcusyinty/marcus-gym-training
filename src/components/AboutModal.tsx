@@ -83,23 +83,40 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
                   {/* Phones: tag and date on the first row, the title on its own full-width row below (no squeezed
                       title, no cut-off date). From sm up: tag, title and date in one row, as before. */}
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+                    {log.version && (
+                      <span data-log-version className="order-1 text-[10px] font-extrabold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        {log.version}
+                      </span>
+                    )}
                     {log.tag && (
                       <span className="order-1 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         {log.tag}
                       </span>
                     )}
-                    <h5 className="order-3 basis-full sm:order-2 sm:basis-auto sm:flex-1 min-w-0 text-xs sm:text-sm font-bold text-white font-['Plus_Jakarta_Sans']">
-                      {log.title[lang]}
-                    </h5>
+                    {log.title && (
+                      <h5 className="order-3 basis-full sm:order-2 sm:basis-auto sm:flex-1 min-w-0 text-xs sm:text-sm font-bold text-white font-['Plus_Jakarta_Sans']">
+                        {log.title[lang]}
+                      </h5>
+                    )}
                     <div className="order-2 sm:order-3 ml-auto flex items-center gap-1 text-[10px] text-zinc-400 font-mono shrink-0">
                       <Clock className="w-3 h-3 text-zinc-500" />
                       <span>{formatLogDate(log, lang)}</span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-zinc-300 leading-relaxed font-sans mt-1">
-                    {log.content[lang]}
-                  </p>
+                  {log.content && (
+                    <p className="text-xs text-zinc-300 leading-relaxed font-sans mt-1">
+                      {log.content[lang]}
+                    </p>
+                  )}
+                  {/* A release's changes */}
+                  {log.bullets && (
+                    <ul data-log-bullets className="mt-1 space-y-1 pl-4 list-disc marker:text-emerald-500 text-xs text-zinc-300 leading-relaxed font-sans">
+                      {log.bullets[lang].map((bullet) => (
+                        <li key={bullet}>{bullet}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
