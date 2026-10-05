@@ -82,6 +82,11 @@ export const App: React.FC = () => {
   });
 
   const activeDay = enrichedDays.find((d) => d.id === activeDayId) || enrichedDays[0];
+  // Another day starts with its description closed (it doesn't carry over from the previous day)
+  const selectDay = (dayId: string) => {
+    setActiveDayId(dayId);
+    setIsDayDescExpanded(false);
+  };
   const t = uiTranslations[lang];
 
   const zhDayTrans = dayTranslationsZh[activeDay.id];
@@ -221,7 +226,7 @@ export const App: React.FC = () => {
     const result = startNewWeek(appData.currentCycle.id);
     if (result.ok || result.reason === 'alreadyStarted') {
       setIsWeeklyReportOpen(false);
-      setActiveDayId(enrichedDays[0].id);
+      selectDay(enrichedDays[0].id);
       setRestTimer(null);
       setTagPrompt(null);
       if (!result.ok) setTabNotice('weekStartedElsewhere');
@@ -299,7 +304,7 @@ export const App: React.FC = () => {
         days={enrichedDays}
         activeDayId={activeDayId}
         lang={lang}
-        onSelectDay={setActiveDayId}
+        onSelectDay={selectDay}
         dayCompletionStats={dayStats}
       />
 
