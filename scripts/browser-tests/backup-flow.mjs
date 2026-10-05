@@ -28,7 +28,15 @@ const pad = (n) => String(n).padStart(2, '0');
 const now = new Date();
 const expectedName = `aesthetic-recomp-backup-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json`;
 
-const plain = (d) => { const { remarks, ...rest } = d; return remarks && Object.keys(remarks).length ? d : rest; };
+// A backup always carries notes and body measurements (step 6); empty ones are saved as no field at all
+const plain = (d) => {
+  const { remarks, body, ...rest } = d;
+  return {
+    ...rest,
+    ...(remarks && Object.keys(remarks).length && { remarks }),
+    ...(body && (body.height || Object.keys(body.entries ?? {}).length) && { body }),
+  };
+};
 const SECTION = `document.querySelector('section[aria-labelledby="data-section-title"]')`;
 const PANEL = `document.querySelector('[aria-labelledby="restore-confirm-title"]')`;
 const buttonIn = (root, text) => `[...${root}.querySelectorAll('button')].find((b) => b.innerText.trim() === ${JSON.stringify(text)})`;
@@ -89,7 +97,7 @@ try {
     return { buttons, minFont: Math.min(...texts.map((el) => parseFloat(getComputedStyle(el).fontSize))), firstInModal: s.parentElement.firstElementChild === s };
   })()`);
   check('"Your data" is the first thing in the About modal; all buttons (incl. Past weeks since 1D-3) >= 44px; all text >= 12px',
-    [sizes.firstInModal, sizes.buttons.map(([t]) => t), sizes.buttons.every(([, h]) => h >= 44), sizes.minFont >= 12], [true, ['Back up my data', 'Restore from backup', 'Past weeks (0)'], true, true]);
+    [sizes.firstInModal, sizes.buttons.map(([t]) => t), sizes.buttons.every(([, h]) => h >= 44), sizes.minFont >= 12], [true, ['Back up my data', 'Restore from backup', 'Past weeks (0)', 'Body (0)'], true, true]);
   console.log('button heights / smallest text:', JSON.stringify(sizes.buttons), sizes.minFont);
 
   const v3BeforeBackup = (await all(a))[V3];

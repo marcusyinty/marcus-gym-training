@@ -288,7 +288,8 @@ try {
   for (let i = 0; i < 50 && !(files = readdirSync(DL).filter((f) => f.endsWith('.json'))).length; i++) await sleep(100);
   const backup = JSON.parse(readFileSync(`${DL}/${files[0]}`, 'utf8'));
   const tagsIn = (data) => [data.currentCycle, ...data.archivedCycles].flatMap((c) => Object.values(c.slots).flatMap((s) => Object.entries(s.sets).filter(([, x]) => x.tag).map(([i, x]) => `${c.id}/${s.slotId}/${i}=${x.tag}`))).sort();
-  check('D backup file holds every tag (current + past weeks), exactly the saved data', [tagsIn(backup.data).length, JSON.stringify(backup.data) === JSON.stringify({ ...JSON.parse(savedBefore), remarks: {} })], [9, true]);
+  // A backup always carries the notes and the body measurements (empty when there are none; step 6)
+  check('D backup file holds every tag (current + past weeks), exactly the saved data', [tagsIn(backup.data).length, JSON.stringify(backup.data) === JSON.stringify({ ...JSON.parse(savedBefore), remarks: {}, body: { entries: {} } })], [9, true]);
   await d.evaluate(`[...document.querySelectorAll('.fixed.inset-0 button')].find((el) => el.innerText.trim() === 'Close').click()`); await sleep(300);
   await tap(d, `${CARD(0)}.querySelector('[data-tags-button]')`);
   await tap(d, `document.querySelector('[data-tag-set="1"] [data-tag-choice="easy"]')`);

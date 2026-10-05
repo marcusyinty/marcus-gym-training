@@ -12,6 +12,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000/';
 const V120_URL = process.env.V120_URL ?? 'http://localhost:3001/';
+const V130_URL = process.env.V130_URL ?? 'http://localhost:3003/';
 const LOGS = path.join(ROOT, 'review-shots', 'browser-tests', 'logs');
 mkdirSync(LOGS, { recursive: true });
 
@@ -25,7 +26,9 @@ const SUITE = [
   ['v3-scenarios'], ['weeks-flow'], ['weeks-break'], ['backup-flow'], ['backup-shots-1d3'], ['v3-heavy-1d3'],
   ['3a-break'], ['3b-flows', BASE_URL, '9430'], ['3b-shots'],
   ['4-flows', BASE_URL, '9453'], ['4-report', 'suite', BASE_URL, '9452'], ['4-shots'], ['5a-polish'],
+  ['6-body'], ['6-shots'],
   ['4-rollback'], // needs v1.2.0 served at V120_URL; skipped otherwise
+  ['6-rollback'], // needs v1.3.0 at V130_URL and/or v1.2.0 at V120_URL; skipped when neither is served
 ];
 
 const args = process.argv.slice(2);
@@ -68,6 +71,11 @@ try {
     const name = [script, ...scriptArgs.filter((a) => !a.startsWith('http') && !/^94\d\d$/.test(a) && a !== 'suite')].join(' ');
     if (script === '4-rollback' && !(await answers(V120_URL))) {
       rows.push(`SKIP  ${name.padEnd(30)} needs v1.2.0 at ${V120_URL} (see README)`);
+      console.log(rows.at(-1));
+      continue;
+    }
+    if (script === '6-rollback' && !(await answers(V120_URL)) && !(await answers(V130_URL))) {
+      rows.push(`SKIP  ${name.padEnd(30)} needs v1.3.0 at ${V130_URL} or v1.2.0 at ${V120_URL} (see README)`);
       console.log(rows.at(-1));
       continue;
     }

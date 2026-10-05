@@ -25,6 +25,7 @@ This is the same as `node scripts/browser-tests/run-all.mjs`.
 | `BASE_URL` | `http://localhost:3000/` | The app under test, e.g. a production build served by `npx vite preview --port 3002` |
 | `CHROME_PATH` | the usual Chrome install location | The Chrome binary |
 | `V120_URL` | `http://localhost:3001/` | A served v1.2.0 build, for the rollback checks (below) |
+| `V130_URL` | `http://localhost:3003/` | A served v1.3.0 build, for the step 6 rollback checks (below) |
 
 ## Where things go
 
@@ -71,7 +72,10 @@ This is the same as `node scripts/browser-tests/run-all.mjs`.
 | `4-report` | "Max on set …" lines in the report; image size with and without tags; numbers unchanged |
 | `4-shots` | Tag and "last time" screens at 360/320, EN and 中文 |
 | `5a-polish` | Step 5A fixes (details below) |
+| `6-body` | Body measurements with real taps (details below) |
+| `6-shots` | Body screen, About and restore panel at 360/320, EN and 中文, with layout checks |
 | `4-rollback` | Data with tags opened in real v1.2.0 and back. Needs `V120_URL`, otherwise skipped |
+| `6-rollback` | Data with body measurements opened in real v1.3.0 and v1.2.0, used there, and back. Needs `V130_URL` and/or `V120_URL`, otherwise skipped |
 
 What `4-flows` covers:
 - the tag prompt rules and the tag sheet
@@ -89,15 +93,28 @@ What `5a-polish` checks:
 - the About text sizes
 - the old v2 keys are unchanged
 
+What `6-body` covers:
+- add, edit, move to another day, delete; the same day asks before replacing
+- refused input: a future day, not a number, out of range; "." and "," decimals; height
+- kg/lbs: shown converted, stored as typed, no drift after 5 switches
+- the chart, its ranges and the summary, with 0, 1, 2 and many entries
+- reload, Reset day, Reset all and Start new week leave body data alone
+- backup and restore, including an old backup without body data
+- stale tabs (another tab saves the same day while the replace question is open)
+- broken body data, the 2,000-entry cap, 中文 at 320px
+- privacy: body values never appear outside the Body screen, About and the backup file (all days, the report, its image and file name, past weeks, console, network, storage)
+
 `cdp.mjs` is the shared helper (start Chrome, open pages, tap, read storage). `run-all.mjs` is the runner.
 
 ## Rollback checks (optional)
 
-`3a-break` (its last part) and `4-rollback` open data in the released v1.2.0 code. They need v1.2.0 served on port 3001; without it they print `SKIP`. To serve it:
+`3a-break` (its last part), `4-rollback` and `6-rollback` open data in released code. They need v1.2.0 served on port 3001 (and, for `6-rollback`, v1.3.0 on port 3003); without it they print `SKIP`. To serve them:
 
 ```
 mkdir ../v120 && git archive v1.2.0 | tar -x -C ../v120    # a copy of the v1.2.0 code
 cd ../v120 && npm ci && npx vite --port 3001
+mkdir ../v130 && git archive v1.3.0 | tar -x -C ../v130    # a copy of the v1.3.0 code
+cd ../v130 && npm ci && npx vite --port 3003
 ```
 
 ## Testing a production build

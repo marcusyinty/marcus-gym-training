@@ -13,7 +13,15 @@ const check = (name, actual, expected) => {
   const ok = JSON.stringify(actual) === JSON.stringify(expected);
   results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}  (got ${JSON.stringify(actual)?.slice(0, 300)})`);
 };
-const plain = (d) => { const { remarks, ...rest } = d; return remarks && Object.keys(remarks).length ? d : rest; };
+// A backup always carries notes and body measurements (step 6); empty ones are saved as no field at all
+const plain = (d) => {
+  const { remarks, body, ...rest } = d;
+  return {
+    ...rest,
+    ...(remarks && Object.keys(remarks).length && { remarks }),
+    ...(body && (body.height || Object.keys(body.entries ?? {}).length) && { body }),
+  };
+};
 const SECTION = `document.querySelector('section[aria-labelledby="data-section-title"]')`;
 const PANEL = `document.querySelector('[aria-labelledby="restore-confirm-title"]')`;
 const buttonIn = (root, text) => `[...${root}.querySelectorAll('button')].find((b) => b.innerText.trim() === ${JSON.stringify(text)})`;
