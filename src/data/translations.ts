@@ -155,6 +155,17 @@ export interface UiTranslations {
   remarkRowLabel: (exercise: string, remark: string) => string;
   restoreRemarksKept: string;
   restoreRemarksReplaced: string;
+  tagNames: { easy: string; good: string; max: string };
+  tagHelp: { easy: string; good: string; max: string };
+  tagNone: string;
+  tagPromptQuestion: (setNum: number) => string;
+  tagPromptDismiss: string;
+  tagsButtonLabel: (exercise: string) => string;
+  tagSheetTitle: string;
+  tagSheetNotTicked: string;
+  tagSheetDone: string;
+  setDoneTaggedLabel: (setNum: number, tag: string) => string;
+  setResultTicked: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -319,6 +330,21 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     restoreRemarksKept: 'Your saved remarks will be kept.',
     restoreRemarksReplaced: 'Your saved remarks will be replaced.',
     remarkRowLabel: (exercise, remark) => (remark ? `Note for ${exercise}: ${remark}` : `Add a note for ${exercise}`),
+    tagNames: { easy: 'Easy', good: 'Good', max: 'Max' },
+    tagHelp: {
+      easy: 'I could have done 3 or more extra reps',
+      good: 'I had 1 to 2 reps left',
+      max: 'I was at my limit, I could not do another rep / had to stop',
+    },
+    tagNone: 'No tag',
+    tagPromptQuestion: (setNum) => `How did set ${setNum} feel?`,
+    tagPromptDismiss: 'Not now',
+    tagsButtonLabel: (exercise) => `How each set felt: ${exercise}`,
+    tagSheetTitle: 'How did each set feel?',
+    tagSheetNotTicked: 'Tick this set first',
+    tagSheetDone: 'Done',
+    setDoneTaggedLabel: (setNum, tag) => `Set ${setNum} done, ${tag}`,
+    setResultTicked: 'done',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -476,6 +502,21 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     restoreRemarksKept: '您保存的备注会保留。',
     restoreRemarksReplaced: '您保存的备注会被替换。',
     remarkRowLabel: (exercise, remark) => (remark ? `${exercise} 的备注：${remark}` : `为 ${exercise} 添加备注`),
+    tagNames: { easy: '轻松', good: '刚好', max: '极限' },
+    tagHelp: {
+      easy: '我还能再多做 3 次或更多',
+      good: '我还剩 1 到 2 次的余力',
+      max: '我已到极限，再也做不了一次／只能停下',
+    },
+    tagNone: '不标记',
+    tagPromptQuestion: (setNum) => `第 ${setNum} 组感觉如何？`,
+    tagPromptDismiss: '暂不标记',
+    tagsButtonLabel: (exercise) => `每组感受：${exercise}`,
+    tagSheetTitle: '每组感觉如何？',
+    tagSheetNotTicked: '请先打勾完成这一组',
+    tagSheetDone: '完成',
+    setDoneTaggedLabel: (setNum, tag) => `第 ${setNum} 组 已完成，${tag}`,
+    setResultTicked: '已完成',
   },
 };
 

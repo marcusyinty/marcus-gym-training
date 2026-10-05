@@ -5,7 +5,8 @@ import { AnatomyMap } from './AnatomyMap';
 import { displayWeight, WeightUnit } from '../lib/units';
 import { parseSetsCount } from '../utils/parseSetsCount';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, ArrowLeftRight, PencilLine } from 'lucide-react';
+import type { SetTag } from '../lib/store/reducer';
+import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, ArrowLeftRight, PencilLine, Tag } from 'lucide-react';
 
 interface ExerciseCardProps {
   // The exercise done in this slot this week: the program's, or a swapped-in alternative (see performedExercise)
@@ -25,6 +26,8 @@ interface ExerciseCardProps {
   swap?: { isSwapped: boolean; onOpen: () => void };
   // The note of the exercise actually done, and opening its editor
   remark?: { text: string; onEdit: () => void };
+  // How each ticked set felt (shown in its tick button) and opening the tag sheet
+  tags?: { bySet: Record<number, SetTag>; onOpen: () => void };
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -42,6 +45,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onOpenVideoModal,
   swap,
   remark,
+  tags,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -437,6 +441,21 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* How each set felt: opens the tag sheet (2 taps to tag any ticked set) */}
+              {tags && (
+                <button
+                  type="button"
+                  onClick={tags.onOpen}
+                  aria-haspopup="dialog"
+                  aria-label={t.tagsButtonLabel(exerciseName)}
+                  title={t.tagSheetTitle}
+                  data-tags-button
+                  className="h-11 w-11 shrink-0 flex items-center justify-center rounded-lg bg-[#18181c] ring-1 ring-zinc-800 text-zinc-300 hover:text-white cursor-pointer"
+                >
+                  <Tag className="w-4 h-4" />
+                </button>
+              )}
+
               {/* kg / lbs Unit Switcher */}
               <div className="flex items-center h-10 bg-[#18181c] ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs font-bold">
                 <button
@@ -473,6 +492,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 const isCompleted = completedSetIndexes.includes(sIdx);
                 const detail = setDetails[sIdx] || { weight: '', reps: '', unit: weightUnit };
                 const setNumber = sIdx + 1;
+                const tag = isCompleted ? tags?.bySet[sIdx] : undefined;
 
                 return (
                   <div
@@ -533,18 +553,20 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       </div>
                     </div>
 
-                    {/* Done / not done (same handler as before) */}
+                    {/* Done / not done (same handler as before); a ticked set's tag is written under the tick */}
                     <button
                       onClick={() => onToggleSet(exercise.id, sIdx)}
                       aria-pressed={isCompleted}
-                      aria-label={t.setDoneLabel(setNumber)}
-                      className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      aria-label={tag ? t.setDoneTaggedLabel(setNumber, t.tagNames[tag]) : t.setDoneLabel(setNumber)}
+                      data-set-tag={tag}
+                      className={`w-12 h-12 shrink-0 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
                         isCompleted
                           ? 'bg-emerald-500 text-black shadow-sm shadow-emerald-500/30'
                           : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
                       }`}
                     >
-                      <Check className={`w-6 h-6 ${isCompleted ? 'stroke-[3]' : ''}`} />
+                      <Check className={`${tag ? 'w-5 h-5' : 'w-6 h-6'} ${isCompleted ? 'stroke-[3]' : ''}`} />
+                      {tag && <span className="mt-px text-[10px] leading-3 font-extrabold uppercase">{t.tagNames[tag]}</span>}
                     </button>
                   </div>
                 );

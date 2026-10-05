@@ -30,6 +30,12 @@ export const topSetText = (top: TopSet, unit: WeightUnit, t: UiTranslations): st
   }
 };
 
+// One set as text, weight already in `unit`: "60 kg × 8", "60 kg", "BW × 12" / "自重 × 12", or "done" / "已完成"
+export const setResultText = (weight: string, reps: string, unit: WeightUnit, t: UiTranslations): string => {
+  if (weight !== '') return reps !== '' ? `${weight} ${unit} × ${reps}` : `${weight} ${unit}`;
+  return reps !== '' ? `${t.bodyweightShort} × ${reps}` : t.setResultTicked;
+};
+
 // A day's heading in the report: "Day 1: Upper A"; in 中文 just "第一天：上肢 A" (that title already names the day)
 export const reportDayHeading = (dayNumber: number, title: string, lang: Language, t: UiTranslations): string =>
   lang === 'zh' ? title : `${t.dayPill(dayNumber)}: ${title}`;
