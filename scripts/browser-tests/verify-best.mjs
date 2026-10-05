@@ -77,8 +77,9 @@ try {
   await sleep(1500);
   check('9. (extra) best made in tab A shows up in tab B', bestInB, ['Prev: 120 kg × 5']);
   check('   tab B saved nothing itself (no write loop)', await tabB.evaluate('window.__writes'), []);
-  check('   tab A saved each key once', (await tabA.evaluate('window.__writes')).sort(),
-    ['aesthetic_recomp_completed_sets_v2', 'aesthetic_recomp_previous_bests_v2', 'aesthetic_recomp_set_details_v2']);
+  // Since the v3 data store (step 1D-2), everything is saved in one key and the three old v2 keys are never
+  // written again. How many saves happen depends on the 300ms save timer, so only the keys are checked.
+  check('   tab A saved only the v3 key (never the old v2 keys)', [...new Set(await tabA.evaluate('window.__writes'))], ['aesthetic_recomp_v3']);
 
   const errors = [page, tabA, tabB].flatMap((p) => p.errors);
   check('No page errors', errors, []);

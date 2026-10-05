@@ -1,7 +1,7 @@
 // Step 4: the weekly report with Max tags. Same week with and without tags -> on-screen check + PNG sizes.
 // Usage: node 4-report.mjs <label> <baseUrl> <port>
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { launchChrome, SCRATCH, sleep, SHOTS, APP } from './cdp.mjs';
+import { launchChrome, SCRATCH, sleep, SHOTS, APP, isKnownImageNotice } from './cdp.mjs';
 import { set, slot } from './fixtures/seed.mjs';
 
 const [label, base, port] = [process.argv[2] ?? 'branch', process.argv[3] ?? APP, Number(process.argv[4] ?? 9452)];
@@ -80,7 +80,7 @@ try {
           copyFileSync(`${dl}/${files[0]}`, target);
           sizes[key] = pngSize(target);
         }
-        const errors = p.errors.filter((e) => !e.startsWith('Error inlining remote css file') && !e.startsWith('Error while reading CSS rules from https://fonts.googleapis.com/'));
+        const errors = p.errors.filter((e) => !isKnownImageNotice(e));
         check(`${label} ${key}: no page errors`, errors, []);
         await chrome.closeTarget(p.targetId);
       }

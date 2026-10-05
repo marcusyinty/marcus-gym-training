@@ -1,6 +1,6 @@
 // Weekly report for a day mixing kg and lbs sets, in both units, plus the PNG export.
 import { writeFileSync } from 'node:fs';
-import { launchChrome, SCRATCH, sleep } from './cdp.mjs';
+import { launchChrome, SCRATCH, sleep, isKnownImageNotice } from './cdp.mjs';
 
 const results = [];
 const check = (label, actual, expected) => {
@@ -62,7 +62,8 @@ try {
   console.log('PNG files exported:', pngNameKg, pngNameLbs);
   check('Stored set details untouched by switching unit', await page.evaluate(`localStorage.getItem('aesthetic_recomp_set_details_v2')`),
     '{"incline-db-press":{"0":{"setNumber":1,"weight":"60","reps":"8","unit":"kg"}},"lat-pulldown":{"0":{"setNumber":1,"weight":"135","reps":"10","unit":"lbs"}}}');
-  check('No page errors', page.errors, []);
+  // The image library's notice about the Google Fonts stylesheet appears on every export since step 1D-4 (known, harmless)
+  check('No page errors (apart from the image library\'s known font-stylesheet notice)', page.errors.filter((e) => !isKnownImageNotice(e)), []);
 } finally {
   console.log(results.join('\n'));
   chrome.kill();

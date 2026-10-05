@@ -1,7 +1,7 @@
 // Step 1D-4: the weekly report on screen + the downloaded PNG, for one build.
 // Usage: node report-export.mjs <label> <baseUrl> <port>
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { launchChrome, SCRATCH, sleep, FIXTURES, SHOTS } from './cdp.mjs';
+import { launchChrome, SCRATCH, sleep, FIXTURES, SHOTS, isKnownImageNotice } from './cdp.mjs';
 
 const [label, base, port] = [process.argv[2], process.argv[3], Number(process.argv[4])];
 const OUT = `${SHOTS}/1d4`;
@@ -68,7 +68,7 @@ try {
       await sleep(500);
       const after = await p.evaluate(`({ copies: document.querySelectorAll('[inert][aria-hidden="true"]').length, scroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight], focusInCopy: !!document.activeElement?.closest('[inert]') })`);
       check(`${label} ${key}: off-screen copy gone afterwards, page scroll size unchanged, focus never inside it`, [after.copies, after.scroll, after.focusInCopy], [0, scrollBefore, false]);
-      const errors = p.errors.filter((e) => !e.startsWith('Error inlining remote css file') && !e.startsWith('Error while reading CSS rules from https://fonts.googleapis.com/'));
+      const errors = p.errors.filter((e) => !isKnownImageNotice(e));
       check(`${label} ${key}: no page errors (apart from the 2 known font-stylesheet notices from the image library)`, errors, []);
       await chrome.closeTarget(p.targetId);
     }

@@ -1,6 +1,9 @@
 // Step 1D-4: About modal at 320/360, EN/中文 - version, developer-log card layout, footer.
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { launchChrome, sleep, SHOTS } from './cdp.mjs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { launchChrome, sleep, SHOTS, ROOT } from './cdp.mjs';
+
+// About shows the app's real version: the one in package.json (1.2.0 when this was written, 1.3.0 since the release)
+const VERSION = `v${JSON.parse(readFileSync(`${ROOT}/package.json`, 'utf8')).version}`;
 const OUT = `${SHOTS}/1d4`;
 mkdirSync(OUT, { recursive: true });
 const results = [];
@@ -37,7 +40,7 @@ try {
       };
     })()`);
     console.log(key, JSON.stringify(info));
-    check(`${key}: version v1.2.0`, info.version, 'v1.2.0');
+    check(`${key}: version ${VERSION} (from package.json)`, info.version, VERSION);
     check(`${key}: log title uses the full card width, date fully inside, no sideways scroll`, [info.titleWidth >= info.cardInner - 2, info.dateInside, info.sideways], [true, true, false]);
     check(`${key}: date and footer in the chosen language`, [info.dateText, info.footer], lang === 'en' ? ['September 13, 2026', 'Built for Progressive Overload'] : ['2026年9月13日', '为渐进超负荷而生']);
     await sleep(200);

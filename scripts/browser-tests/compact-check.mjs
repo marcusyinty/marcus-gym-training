@@ -33,9 +33,13 @@ try {
     await page.evaluate(`localStorage.clear(); localStorage.setItem('language_preference', '${lang}'); localStorage.setItem('aesthetic_recomp_unit_v1', 'kg');`);
     await page.reload(3500);
 
-    check(`${lang}: card 1 without a video shows the placeholder (no button, no image)`,
-      await page.evaluate(`({ placeholder: !!${card}.querySelector('div[aria-hidden="true"] svg'), thumbButton: !!${card}.querySelector('button[aria-label]'), img: !!${card}.querySelector('img') })`),
-      { placeholder: true, thumbButton: false, img: false });
+    // Since step 3B the placeholder is a labelled image ("No video yet"), and every card also has other labelled
+    // buttons (note, swap, tag), so the thumbnail button is looked for by its own label
+    const noVideo = lang === 'zh' ? '暂无视频' : 'No video yet';
+    const thumbLabel = lang === 'zh' ? '动作示范: ' : 'Form Demo: ';
+    check(`${lang}: card 1 without a video shows the placeholder (no thumbnail button, no image)`,
+      await page.evaluate(`({ placeholder: ${card}.querySelector('[data-no-video][role="img"]')?.getAttribute('aria-label') ?? null, thumbButton: !!${card}.querySelector('button[aria-label^="${thumbLabel}"]'), img: !!${card}.querySelector('img') })`),
+      { placeholder: noVideo, thumbButton: false, img: false });
     check(`${lang}: card 2 has a thumbnail button labelled with the exercise name`,
       await page.evaluate(`document.querySelector('main .space-y-6').children[1].querySelector('button[aria-label]').getAttribute('aria-label')`),
       lang === 'zh' ? '动作示范: 高位下拉' : 'Form Demo: Lat Pulldown');
@@ -60,12 +64,15 @@ try {
     const collapsed = await page.evaluate(cueState);
     await page.evaluate(`document.querySelectorAll('main .space-y-6 > *').forEach((c) => c.querySelectorAll('button[aria-expanded]')[0].click())`); await sleep(300);
     const expanded = await page.evaluate(cueState);
-    check(`${lang}: every cue is at most 2 lines collapsed; expanded nothing is cut off`,
-      [collapsed.every((c) => c.lines <= 2), expanded.every((c) => !c.hidden), collapsed.some((c) => c.hidden)], [true, true, true]);
+    // A cue that needs more than 2 lines is clamped when collapsed (whether one does depends on the language and
+    // width: in 中文 at 360px every Day 1 cue fits in 2 lines), and after a tap nothing is cut off
+    check(`${lang}: every cue is at most 2 lines collapsed, clamped exactly when it needs more; expanded nothing is cut off`,
+      [collapsed.every((c) => c.lines <= 2), collapsed.every((c, i) => c.hidden === expanded[i].lines > 2), expanded.every((c) => !c.hidden)], [true, true, true]);
     console.log(`  ${lang} cue lines collapsed -> expanded:`, collapsed.map((c, i) => c.lines + '->' + expanded[i].lines).join(' '));
 
     check(`${lang}: Muscle Map closed by default (no map in the card)`, await page.evaluate(`!!document.querySelector('main .space-y-6').children[1].querySelector('svg[viewBox="0 0 200 220"]')`), false);
-    await page.evaluate(`document.querySelector('main .space-y-6').children[1].querySelectorAll('button[aria-expanded]')[1].click()`); await sleep(300);
+    // The Muscle Map toggle (by its icon: since step 2B the log section's chevron is also an expandable button)
+    await page.evaluate(`[...document.querySelector('main .space-y-6').children[1].querySelectorAll('button[aria-expanded]')].find((b) => b.querySelector('.lucide-activity')).click()`); await sleep(300);
     check(`${lang}: Muscle Map toggle opens the map + secondary muscles`,
       await page.evaluate(`(() => { const c = document.querySelector('main .space-y-6').children[1]; return { map: !!c.querySelector('svg[viewBox="0 0 200 220"]'), chips: c.querySelectorAll('.bg-zinc-800\\\\/80').length > 0 }; })()`),
       { map: true, chips: true });
@@ -77,6 +84,21 @@ try {
     writeFileSync(`${OUT}/360x740-${lang}-placeholder.png`, Buffer.from(top.data, 'base64'));
     check(`${lang}: no page errors, no video elements`, [page.errors, await page.evaluate(`document.querySelectorAll('video').length`)], [[], 0]);
     page.close(); await chrome.closeTarget(page.targetId);
+
+    // The real no-video case since step 3A: a swapped-in alternative (no videos made for them yet)
+    const swapped = await chrome.newPage(360, 740);
+    await swapped.goto();
+    await swapped.evaluate(`localStorage.clear(); localStorage.setItem('language_preference', '${lang}'); localStorage.setItem('aesthetic_recomp_v3', ${JSON.stringify(JSON.stringify({
+      schemaVersion: 3, currentCycle: { id: 'w', startedAt: '2026-10-05T06:00:00.000Z', slots: { 'leg-press': { slotId: 'leg-press', exerciseId: 'leg-press', performedExerciseId: 'hack-squat', sets: {} } } },
+      archivedCycles: [], bests: {}, reportShownCycleIds: [],
+    }))});`);
+    await swapped.reload(2500);
+    await swapped.evaluate(`document.querySelectorAll('nav button')[1].click()`); await sleep(400);
+    check(`${lang}: a swapped-in alternative (Hack Squat on Day 2) shows the placeholder, no thumbnail, no image`,
+      await swapped.evaluate(`(() => { const c = document.querySelector('main .space-y-6').children[0]; return { placeholder: c.querySelector('[data-no-video][role="img"]')?.getAttribute('aria-label') ?? null, thumbButton: !!c.querySelector('button[aria-label^="${thumbLabel}"]'), img: !!c.querySelector('img') }; })()`),
+      { placeholder: noVideo, thumbButton: false, img: false });
+    check(`${lang}: no page errors (swapped card)`, swapped.errors, []);
+    await chrome.closeTarget(swapped.targetId);
   }
 } finally {
   console.log(results.join('\n'));

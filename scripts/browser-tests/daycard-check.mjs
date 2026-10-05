@@ -24,6 +24,13 @@ try {
     }
     console.log(`${w} ${lang} card height / title lines, days 1-5:`, perDay.join('  '));
     await page.evaluate(`document.querySelectorAll('nav button')[0].click()`); await sleep(250);
+    // The fill animates its width for 300ms after a day switch: wait until it stops changing before reading it
+    // (reading it mid-animation gave 16% instead of 17%, depending on timing)
+    await page.evaluate(`(async () => {
+      const fill = ${CARD}.querySelector('[role="progressbar"]').firstElementChild;
+      let last = -1;
+      for (let i = 0; i < 40; i++) { const w = fill.getBoundingClientRect().width; if (w === last) return; last = w; await new Promise((r) => setTimeout(r, 100)); }
+    })()`);
 
     const bar = await page.evaluate(`(() => { const b = ${CARD}.querySelector('[role="progressbar"]'); return [b.getAttribute('aria-label'), b.getAttribute('aria-valuenow'), b.getAttribute('aria-valuemax'), Math.round(b.firstElementChild.getBoundingClientRect().width / b.getBoundingClientRect().width * 100)]; })()`);
     check(`${w} ${lang}: progress bar label, now/max, fill % (3 of 18 = 17%)`, bar, [lang === 'zh' ? '本日进度' : 'Day Progress', '3', '18', 17]);
@@ -33,7 +40,8 @@ try {
     const before = await page.evaluate(desc);
     await page.evaluate(`${CARD}.querySelector('button[aria-expanded]').click()`); await sleep(200);
     const after = await page.evaluate(desc);
-    check(`${w} ${lang}: description 1 line, tap area >= 40px, tap shows all`, [before.lines, before.tap >= 40, after.cut, after.lines >= before.lines], [1, true, false, true]);
+    // Tap area 40px when this was written (step 2C), 44px since step 5A
+    check(`${w} ${lang}: description 1 line, tap area >= 44px, tap shows all`, [before.lines, before.tap >= 44, after.cut, after.lines >= before.lines], [1, true, false, true]);
     const smallest = await page.evaluate(`Math.min(...[...${CARD}.querySelectorAll('*')].filter((el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())).map((el) => parseFloat(getComputedStyle(el).fontSize)))`);
     check(`${w} ${lang}: smallest text >= 12px`, smallest >= 12, true);
     check(`${w} ${lang}: no sideways scroll, no errors`, [await page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth'), page.errors], [0, []]);

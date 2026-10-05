@@ -1,4 +1,4 @@
-// Step 1D-3 main flow with real taps on migrated real-user data (360x740):
+// Step 1D-3 main flow with real taps on migrated v2 data (the made-up fixture recorded from the old app) at 360x740:
 // tick -> Start new week -> history row -> old report -> lbs -> 中文 -> reload -> everything still there.
 // The 4 v2 keys must stay byte-for-byte the same after every step.
 import { readFileSync } from 'node:fs';
