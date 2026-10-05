@@ -86,6 +86,19 @@ describe('validateV3', () => {
     expect(data!.reportShownCycleIds).toEqual(['c0']);
   });
 
+  it('a tag left on an unticked set (v1.2.0 keeps it when unticking) is removed quietly, in every week', () => {
+    const raw = JSON.parse(JSON.stringify(validV3()));
+    raw.currentCycle.slots.bench.sets['1'] = { weight: '60', reps: '6', unit: 'kg', done: false, tag: 'max', updatedAt: 't' };
+    raw.archivedCycles[0].slots.squat = { slotId: 'squat', exerciseId: 'squat', performedExerciseId: 'squat', sets: { 0: { weight: '', reps: '', unit: 'kg', done: false, tag: 'easy' }, 1: { weight: '80', reps: '8', unit: 'kg', done: true, tag: 'good' } } };
+    const { data, droppedAny } = validateV3(raw);
+    expect(droppedAny).toBe(false); // no copy of the raw text for this: nothing a user could see is lost
+    expect(data!.currentCycle.slots.bench.sets).toStrictEqual({
+      0: { weight: '60', reps: '8', unit: 'kg', done: true, tag: 'good', updatedAt: 't' }, // ticked: kept
+      1: { weight: '60', reps: '6', unit: 'kg', done: false, updatedAt: 't' },
+    });
+    expect(data!.archivedCycles[0].slots.squat.sets).toStrictEqual({ 0: { weight: '', reps: '', unit: 'kg', done: false }, 1: { weight: '80', reps: '8', unit: 'kg', done: true, tag: 'good' } });
+  });
+
   it('missing optional lists count as empty without dropping anything', () => {
     const { data, droppedAny } = validateV3({ schemaVersion: 3, currentCycle: { id: 'c', startedAt: 't', slots: {} } });
     expect(droppedAny).toBe(false);

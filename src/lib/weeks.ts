@@ -29,6 +29,12 @@ export const formatDay = (iso: string | undefined, lang: Language): string | nul
   return date ? date.toLocaleDateString(LOCALES[lang], DAY_FORMAT) : null;
 };
 
+// e.g. "28 Sept" / "9月28日" (no year, for short lines); null when the saved text isn't a readable date
+export const formatShortDay = (iso: string | undefined, lang: Language): string | null => {
+  const date = readDate(iso);
+  return date ? date.toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'short' }) : null;
+};
+
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 // "2026-09-28" (local calendar day), e.g. for file names; null when the saved text isn't a readable date

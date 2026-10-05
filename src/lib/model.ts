@@ -8,7 +8,7 @@ export interface LoggedSet {
   reps: string;
   unit: WeightUnit;
   done: boolean;
-  tag?: 'easy' | 'good' | 'max'; // no UI yet
+  tag?: 'easy' | 'good' | 'max'; // how a ticked set felt (never on an unticked set)
   updatedAt?: string;
 }
 

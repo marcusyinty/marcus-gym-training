@@ -4,7 +4,7 @@
 import { parseSetsCount } from '../utils/parseSetsCount';
 import { performedExerciseIdIn } from './exerciseVariants';
 import { Cycle } from './model';
-import { cycleCompletedIndexes, cycleSetDetails, ProgramDay, progressOfCycle, tickedSetCount } from './store/selectors';
+import { cycleCompletedIndexes, cycleSetDetails, cycleSetTag, ProgramDay, progressOfCycle, tickedSetCount } from './store/selectors';
 import { convertWeight, displayWeight, parseNumber, toKg, WeightUnit } from './units';
 
 // The best ticked set of one exercise, as the report shows it
@@ -20,6 +20,7 @@ export interface ExerciseReport {
   top: TopSet;
   volume: number; // in the report's unit
   complete: boolean; // every set of the exercise ticked
+  maxSets: number[]; // set numbers (1, 2, ...) of ticked sets tagged Max; tags change none of the numbers above
 }
 
 export interface DayReport {
@@ -75,6 +76,7 @@ const exerciseReport = (cycle: Cycle, exercise: ProgramDay['exercises'][number],
     top,
     volume,
     complete: setCount > 0 && Math.min(doneIndexes.length, setCount) === setCount,
+    maxSets: doneIndexes.filter((index) => cycleSetTag(cycle, exercise.id, index) === 'max').map((index) => index + 1),
   };
 };
 

@@ -55,6 +55,12 @@ const withSlot = (state: AppDataV3, slot: LoggedSlot): AppDataV3 => ({
 const withoutKey = <V>(record: Record<string, V>, key: string): Record<string, V> =>
   Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
 
+// A tag says how a finished set felt, so only a ticked set has one
+const withoutTag = (set: LoggedSet): LoggedSet => {
+  const { tag: _tag, ...untagged } = set;
+  return untagged;
+};
+
 // Bests only come from done sets and only go up (estimated 1RM in kg; a tie keeps the existing best).
 // Keyed by the exercise actually done (performedExerciseId): the slot's own shared id, so two slots of the
 // same exercise share one best, or an alternative's own id, which never touches the default's best.
@@ -73,14 +79,14 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
       const slot = getSlot(state, action.slotId) ?? newSlot(action.slotId);
       const existing = getSet(slot, action.setIndex);
       if (existing?.done) {
-        // Untick. A set that only ever had the tick disappears again; bests are never lowered.
-        const sets =
-          hasDetail(existing) || existing.tag !== undefined
-            ? { ...slot.sets, [action.setIndex]: { ...existing, done: false } }
-            : withoutKey(slot.sets, String(action.setIndex));
+        // Untick: the tag goes with it. A set that only ever had the tick disappears again; bests are never lowered.
+        const sets = hasDetail(existing)
+          ? { ...slot.sets, [action.setIndex]: { ...withoutTag(existing), done: false } }
+          : withoutKey(slot.sets, String(action.setIndex));
         return withSlot(state, { ...slot, sets });
       }
-      const set: LoggedSet = existing ? { ...existing, done: true } : { weight: '', reps: '', unit: action.unit, done: true };
+      // A newly ticked set never starts with a tag (not even one an older version left on the unticked set)
+      const set: LoggedSet = existing ? { ...withoutTag(existing), done: true } : { weight: '', reps: '', unit: action.unit, done: true };
       const nextSlot = { ...slot, sets: { ...slot.sets, [action.setIndex]: set } };
       return withBestFrom(withSlot(state, nextSlot), nextSlot, set);
     }
@@ -96,7 +102,9 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
         action.type === 'editWeight'
           ? withWeightEdit(stored, action.weight, action.unit)
           : withRepsEdit(stored, action.reps, action.unit);
-      const set: LoggedSet = { ...existing, ...edited, done: existing?.done ?? false, updatedAt: ctx.now.toISOString() };
+      // A ticked set keeps its tag when its numbers are corrected
+      const kept = existing ? (existing.done ? existing : withoutTag(existing)) : undefined;
+      const set: LoggedSet = { ...kept, ...edited, done: existing?.done ?? false, updatedAt: ctx.now.toISOString() };
       const nextSlot = { ...slot, sets: { ...slot.sets, [action.setIndex]: set } };
       const next = withSlot(state, nextSlot);
       // As today: a done set is checked for a new best only when its weight, reps or unit actually changed
@@ -105,11 +113,11 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
     }
 
     case 'setTag': {
+      // Only a ticked set can be tagged (null clears the tag). Tags never touch bests, volume or progress.
       const slot = getSlot(state, action.slotId);
       const existing = getSet(slot, action.setIndex);
-      if (!slot || !existing) return state; // nothing to tag
-      const { tag: _previousTag, ...untagged } = existing;
-      const set: LoggedSet = action.tag ? { ...untagged, tag: action.tag } : untagged;
+      if (!slot || !existing?.done || (existing.tag ?? null) === action.tag) return state;
+      const set: LoggedSet = action.tag ? { ...withoutTag(existing), tag: action.tag } : withoutTag(existing);
       return withSlot(state, { ...slot, sets: { ...slot.sets, [action.setIndex]: set } });
     }
 

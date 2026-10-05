@@ -69,6 +69,24 @@ export const cycleSetDetails = (cycle: Cycle, slotId: string): Record<number, Se
 
 export const setDetails = (data: AppDataV3, slotId: string): Record<number, SetDetailView> => cycleSetDetails(data.currentCycle, slotId);
 
+// How a ticked set felt, or undefined (no tag, or not ticked: a tag on an unticked set is never shown)
+export const cycleSetTag = (cycle: Cycle, slotId: string, setIndex: number): LoggedSet['tag'] => {
+  const slot = slotIn(cycle, slotId);
+  const set = slot && hasOwn(slot.sets, setIndex) ? slot.sets[setIndex] : undefined;
+  return set?.done ? set.tag : undefined;
+};
+
+// Tags of the ticked sets of a slot this week, by set index
+export const setTags = (data: AppDataV3, slotId: string): Record<number, NonNullable<LoggedSet['tag']>> => {
+  const slot = slotIn(data.currentCycle, slotId);
+  if (!slot) return {};
+  return Object.fromEntries(
+    Object.entries(slot.sets)
+      .filter(([, set]) => set.done && set.tag !== undefined)
+      .map(([setIndex, set]) => [setIndex, set.tag as NonNullable<LoggedSet['tag']>])
+  );
+};
+
 // Best set of the exercise done in a slot this week: shared by every slot of the same exercise (e.g. rdl and
 // rdl-lower-b, or hack-squat on Day 2 and Day 5); a swapped-in alternative has its own best
 export const previousBest = (data: AppDataV3, slotId: string): BestSet | undefined => {

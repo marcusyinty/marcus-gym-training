@@ -192,6 +192,26 @@ describe('two tabs', () => {
     expect(completedIndexes(tabB.getState(), 'squat')).toEqual([]);
   });
 
+  it("stale tab: the other tab's tag is kept and the tag tapped here is dropped (counted, so the page can say so)", () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, () => 'a'));
+    tabA.dispatch(tick('bench', 0));
+    tabA.dispatch(tick('bench', 1));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared, () => 'b')); // opened now: sees both ticks
+    tabB.dispatch({ type: 'setTag', slotId: 'bench', setIndex: 0, tag: 'max' });
+    tabB.flush();
+    // A never heard about B's save (e.g. the phone kept it asleep) and tags set 2
+    tabA.dispatch({ type: 'setTag', slotId: 'bench', setIndex: 1, tag: 'easy' });
+    vi.advanceTimersByTime(1000);
+    const saved = JSON.parse(shared.getItem(STORAGE_KEY_V3)!) as AppDataV3;
+    expect(saved.currentCycle.slots.bench.sets[0].tag).toBe('max');
+    expect(saved.currentCycle.slots.bench.sets[1].tag).toBeUndefined();
+    expect(tabA.getState().currentCycle.slots.bench.sets[0].tag).toBe('max');
+    expect(completedIndexes(tabA.getState(), 'bench')).toEqual([0, 1]);
+    expect(tabA.getDroppedChangeCount()).toBe(1);
+  });
+
   it('removed key or unreadable text from another tab is ignored', () => {
     const storage = new MemoryStorage(V2_RECORDED);
     const store = createAppDataStore(options(storage));

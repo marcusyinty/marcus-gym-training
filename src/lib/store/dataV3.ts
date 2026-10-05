@@ -57,6 +57,9 @@ const checkSet = (raw: unknown, key: string): Checked<LoggedSet> => {
     delete set.tag;
     dropped = true;
   }
+  // A tag only describes a ticked set. One left on an unticked set (v1.2.0 keeps it when unticking) can never
+  // be shown, so it is removed quietly: not counted as dropped, since nothing a user could see is lost.
+  if ('tag' in set && raw.done !== true) delete set.tag;
   if ('updatedAt' in set && typeof set.updatedAt !== 'string') {
     delete set.updatedAt;
     dropped = true;
