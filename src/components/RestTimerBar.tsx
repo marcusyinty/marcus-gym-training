@@ -18,7 +18,8 @@ const LATE_ALERT_MS = 2000;
 // How long the green "rest over" state stays after it was first seen
 const FINISHED_VISIBLE_MS = 10_000;
 
-// Bottom bar for the rest between sets. It is remounted for every new rest (see the key in App).
+// Bottom bar for the rest between sets. It is remounted for every new rest (see the key in App). It sits in
+// App's fixed bottom dock, under the tag prompt when that is showing.
 export const RestTimerBar: React.FC<RestTimerBarProps> = ({ lang, countdown, soundOn, onToggleSound, onAddTime, onClose }) => {
   const t = uiTranslations[lang];
   const [now, setNow] = useState(() => Date.now());
@@ -64,7 +65,7 @@ export const RestTimerBar: React.FC<RestTimerBarProps> = ({ lang, countdown, sou
   const progress = restProgress(countdown, now);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] pointer-events-none">
+    <div data-rest-timer>
       {/* Screen readers: announced only when the rest starts and when it ends, not every second */}
       <p className="sr-only" aria-live="polite">
         {isOver ? t.restOver : startAnnouncement}

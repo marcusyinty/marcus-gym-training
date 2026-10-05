@@ -125,6 +125,49 @@ export interface UiTranslations {
   historyEmptyHint: string;
   historyUnreadable: string;
   historyRowSets: (n: number) => string;
+  reportBrand: string;
+  reportCleared: (percent: number) => string;
+  bodyweightShort: string;
+  exerciseCountShort: (count: number) => string;
+  devLogTitle: string;
+  builtForOverload: string;
+  swapButton: string;
+  swappedButton: string;
+  swapButtonLabel: (exercise: string) => string;
+  swapTitle: string;
+  swapCurrent: string;
+  swapProgramExercise: string;
+  swapAlternative: string;
+  swapBackTo: (exercise: string) => string;
+  swapBlockedTicked: string;
+  swapConfirmClear: string;
+  swapConfirmButton: string;
+  swapNotAllowed: string;
+  swapSame: string;
+  swapSavingOff: string;
+  changeSaveFailed: string;
+  updatedFromOtherTabNeutral: string;
+  noVideoYet: string;
+  remarkPlaceholder: string;
+  remarkTitle: (exercise: string) => string;
+  remarkHint: string;
+  remarkSave: string;
+  remarkRowLabel: (exercise: string, remark: string) => string;
+  restoreRemarksKept: string;
+  restoreRemarksReplaced: string;
+  tagNames: { easy: string; good: string; max: string };
+  tagHelp: { easy: string; good: string; max: string };
+  tagNone: string;
+  tagPromptQuestion: (setNum: number) => string;
+  tagPromptDismiss: string;
+  tagsButtonLabel: (exercise: string) => string;
+  tagSheetTitle: string;
+  tagSheetNotTicked: string;
+  tagSheetDone: string;
+  setDoneTaggedLabel: (setNum: number, tag: string) => string;
+  setResultTicked: string;
+  lastTimeLine: (date: string | null, result: string) => string;
+  reportMaxOnSets: (setNumbers: number[]) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -259,6 +302,53 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     historyEmptyHint: 'When you start a new week, the finished week appears here.',
     historyUnreadable: "Your saved weeks couldn't be read right now, so they can't be shown.",
     historyRowSets: (n) => `${n} ticked ${n === 1 ? 'set' : 'sets'}`,
+    reportBrand: 'MARCUS HYPERTROPHY',
+    reportCleared: (percent) => `${percent}% Cleared`,
+    bodyweightShort: 'BW',
+    exerciseCountShort: (count) => `${count} Ex`,
+    devLogTitle: 'Developer Log & Updates',
+    builtForOverload: 'Built for Progressive Overload',
+    swapButton: 'Swap',
+    swappedButton: 'Swapped',
+    swapButtonLabel: (exercise) => `Swap exercise: ${exercise}`,
+    swapTitle: 'Choose the exercise',
+    swapCurrent: 'Current',
+    swapProgramExercise: 'Program exercise',
+    swapAlternative: 'Alternative',
+    swapBackTo: (exercise) => `Switch back to ${exercise}`,
+    swapBlockedTicked: 'You already ticked sets on this exercise this week. Untick them first.',
+    swapConfirmClear: 'Weights and reps you typed for this exercise will be cleared.',
+    swapConfirmButton: 'Swap and clear',
+    swapNotAllowed: "This exercise can't be used here, so nothing was changed.",
+    swapSame: 'This exercise is already selected.',
+    swapSavingOff: "Saving is off right now (your saved workouts couldn't be read), so nothing was changed.",
+    changeSaveFailed: "The change couldn't be saved on this phone, so nothing was changed.",
+    updatedFromOtherTabNeutral: 'Updated with newer data from another tab.',
+    noVideoYet: 'No video yet',
+    remarkPlaceholder: 'Add a note (seat height, incline holes…)',
+    remarkTitle: (exercise) => `Note for ${exercise}`,
+    remarkHint: 'Up to 3 lines. Save empty to delete the note.',
+    remarkSave: 'Save',
+    restoreRemarksKept: 'Your saved remarks will be kept.',
+    restoreRemarksReplaced: 'Your saved remarks will be replaced.',
+    remarkRowLabel: (exercise, remark) => (remark ? `Note for ${exercise}: ${remark}` : `Add a note for ${exercise}`),
+    tagNames: { easy: 'Easy', good: 'Good', max: 'Max' },
+    tagHelp: {
+      easy: 'I could have done 3 or more extra reps',
+      good: 'I had 1 to 2 reps left',
+      max: 'I was at my limit, I could not do another rep / had to stop',
+    },
+    tagNone: 'No tag',
+    tagPromptQuestion: (setNum) => `How did set ${setNum} feel?`,
+    tagPromptDismiss: 'Not now',
+    tagsButtonLabel: (exercise) => `How each set felt: ${exercise}`,
+    tagSheetTitle: 'How did each set feel?',
+    tagSheetNotTicked: 'Tick this set first',
+    tagSheetDone: 'Done',
+    setDoneTaggedLabel: (setNum, tag) => `Set ${setNum} done, ${tag}`,
+    setResultTicked: 'done',
+    lastTimeLine: (date, result) => (date ? `Last (${date}): ${result}` : `Last: ${result}`),
+    reportMaxOnSets: (setNumbers) => `Max on ${setNumbers.length === 1 ? 'set' : 'sets'} ${setNumbers.join(', ')}`,
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -283,7 +373,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     volumeLabel: '容量',
     sets: '组',
     reps: '次',
-    prevBest: (weight, unit, reps) => `上次: ${weight} ${unit} × ${reps}次`,
+    prevBest: (weight, unit, reps) => `最佳: ${weight} ${unit} × ${reps}次`,
     targetsLabel: '主/辅肌群:',
     coachingCueLabel: '动作要领',
     logSessionLabel: (completed, total) => `训练打卡 (${completed}/${total} 组)`,
@@ -386,6 +476,53 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     historyEmptyHint: '开始新的一周后，已完成的一周会显示在这里。',
     historyUnreadable: '目前无法读取已保存的周记录，因此无法显示。',
     historyRowSets: (n) => `${n} 组已完成`,
+    reportBrand: 'MARCUS 增肌站',
+    reportCleared: (percent) => `完成 ${percent}%`,
+    bodyweightShort: '自重',
+    exerciseCountShort: (count) => `${count} 项`,
+    devLogTitle: '开发者日志与更新',
+    builtForOverload: '为渐进超负荷而生',
+    swapButton: '替换',
+    swappedButton: '已替换',
+    swapButtonLabel: (exercise) => `替换动作：${exercise}`,
+    swapTitle: '选择动作',
+    swapCurrent: '当前',
+    swapProgramExercise: '计划动作',
+    swapAlternative: '替代动作',
+    swapBackTo: (exercise) => `换回${exercise}`,
+    swapBlockedTicked: '本周您已在这个动作上打勾完成了组数。请先取消打勾。',
+    swapConfirmClear: '您为这个动作输入的重量和次数将被清除。',
+    swapConfirmButton: '替换并清除',
+    swapNotAllowed: '这个动作不能用在这里，因此没有做任何更改。',
+    swapSame: '已经选择了这个动作。',
+    swapSavingOff: '目前无法保存（已保存的训练记录无法读取），因此没有做任何更改。',
+    changeSaveFailed: '无法在这台手机上保存这项更改，因此没有做任何更改。',
+    updatedFromOtherTabNeutral: '已使用另一个标签页中较新的数据更新。',
+    noVideoYet: '暂无视频',
+    remarkPlaceholder: '添加备注（座椅高度、上斜孔位…）',
+    remarkTitle: (exercise) => `${exercise} 的备注`,
+    remarkHint: '最多 3 行。清空后保存即可删除备注。',
+    remarkSave: '保存',
+    restoreRemarksKept: '您保存的备注会保留。',
+    restoreRemarksReplaced: '您保存的备注会被替换。',
+    remarkRowLabel: (exercise, remark) => (remark ? `${exercise} 的备注：${remark}` : `为 ${exercise} 添加备注`),
+    tagNames: { easy: '轻松', good: '刚好', max: '极限' },
+    tagHelp: {
+      easy: '我还能再多做 3 次或更多',
+      good: '我还剩 1 到 2 次的余力',
+      max: '我已到极限，再也做不了一次／只能停下',
+    },
+    tagNone: '不标记',
+    tagPromptQuestion: (setNum) => `第 ${setNum} 组感觉如何？`,
+    tagPromptDismiss: '暂不标记',
+    tagsButtonLabel: (exercise) => `每组感受：${exercise}`,
+    tagSheetTitle: '每组感觉如何？',
+    tagSheetNotTicked: '请先打勾完成这一组',
+    tagSheetDone: '完成',
+    setDoneTaggedLabel: (setNum, tag) => `第 ${setNum} 组 已完成，${tag}`,
+    setResultTicked: '已完成',
+    lastTimeLine: (date, result) => (date ? `上次（${date}）：${result}` : `上次：${result}`),
+    reportMaxOnSets: (setNumbers) => `第 ${setNumbers.join('、')} 组到达极限`,
   },
 };
 

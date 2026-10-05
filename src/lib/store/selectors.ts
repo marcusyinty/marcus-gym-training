@@ -1,7 +1,7 @@
 // Read-only views of AppDataV3 in exactly the shapes the components use (the v2 shapes). Pure functions.
 // Each comes in two forms: for any week (a Cycle, current or archived) and for the current week.
 import { parseSetsCount } from '../../utils/parseSetsCount';
-import { exerciseIdForSlotId } from '../exerciseIds';
+import { performedExerciseIdIn } from '../exerciseVariants';
 import { AppDataV3, BestSet, Cycle, LoggedSet, LoggedSlot } from '../model';
 import { WeightUnit } from '../units';
 
@@ -69,9 +69,28 @@ export const cycleSetDetails = (cycle: Cycle, slotId: string): Record<number, Se
 
 export const setDetails = (data: AppDataV3, slotId: string): Record<number, SetDetailView> => cycleSetDetails(data.currentCycle, slotId);
 
-// Best set for a slot, shared by every slot of the same exercise (e.g. rdl and rdl-lower-b)
+// How a ticked set felt, or undefined (no tag, or not ticked: a tag on an unticked set is never shown)
+export const cycleSetTag = (cycle: Cycle, slotId: string, setIndex: number): LoggedSet['tag'] => {
+  const slot = slotIn(cycle, slotId);
+  const set = slot && hasOwn(slot.sets, setIndex) ? slot.sets[setIndex] : undefined;
+  return set?.done ? set.tag : undefined;
+};
+
+// Tags of the ticked sets of a slot this week, by set index
+export const setTags = (data: AppDataV3, slotId: string): Record<number, NonNullable<LoggedSet['tag']>> => {
+  const slot = slotIn(data.currentCycle, slotId);
+  if (!slot) return {};
+  return Object.fromEntries(
+    Object.entries(slot.sets)
+      .filter(([, set]) => set.done && set.tag !== undefined)
+      .map(([setIndex, set]) => [setIndex, set.tag as NonNullable<LoggedSet['tag']>])
+  );
+};
+
+// Best set of the exercise done in a slot this week: shared by every slot of the same exercise (e.g. rdl and
+// rdl-lower-b, or hack-squat on Day 2 and Day 5); a swapped-in alternative has its own best
 export const previousBest = (data: AppDataV3, slotId: string): BestSet | undefined => {
-  const exerciseId = exerciseIdForSlotId(slotId);
+  const exerciseId = performedExerciseIdIn(data.currentCycle, slotId);
   return hasOwn(data.bests, exerciseId) ? data.bests[exerciseId] : undefined;
 };
 
@@ -99,6 +118,14 @@ export const progressOfCycle = (cycle: Cycle, program: ProgramDay[]): CycleProgr
 };
 
 export const cycleProgress = (data: AppDataV3, program: ProgramDay[]): CycleProgress => progressOfCycle(data.currentCycle, program);
+
+// The remark saved for an exercise id ('' when there is none)
+export const remarkFor = (data: AppDataV3, exerciseId: string): string =>
+  data.remarks && hasOwn(data.remarks, exerciseId) ? data.remarks[exerciseId] : '';
+
+// The remark of the exercise done in a slot this week: Day 2 and Day 5 Leg Press share one; a swapped-in
+// alternative shows its own (nothing is copied or lost by a swap)
+export const remarkForSlot = (data: AppDataV3, slotId: string): string => remarkFor(data, performedExerciseIdIn(data.currentCycle, slotId));
 
 export const isCycleComplete = (data: AppDataV3, program: ProgramDay[]): boolean => {
   const { completedSets, totalSets } = cycleProgress(data, program);

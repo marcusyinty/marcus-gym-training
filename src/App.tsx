@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { getEnrichedWorkoutProgram, workoutProgram } from './data/workoutProgram';
 import { uiTranslations, dayTranslationsZh } from './data/translations';
 import { HeaderBanner } from './components/HeaderBanner';
@@ -10,15 +10,25 @@ import { ProgramNotice } from './components/ProgramNotice';
 import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { HistoryModal } from './components/HistoryModal';
+import { SwapSheet } from './components/SwapSheet';
+import { alternativesForSlot, performedExercise, performedExerciseIdIn, performedExerciseName } from './lib/exerciseVariants';
+import { exerciseIdForSlotId } from './lib/exerciseIds';
+import { swapOptions } from './lib/store/swap';
+import type { RemarkResult, SwapResult } from './lib/store/appDataStore';
+import { RemarkSheet } from './components/RemarkSheet';
+import { TagSheet } from './components/TagSheet';
+import { TagPrompt } from './components/TagPrompt';
+import type { SetTag } from './lib/store/reducer';
 import { parseSetsCount } from './utils/parseSetsCount';
 import { usePersistentState } from './hooks/usePersistentState';
 import { useAppData } from './hooks/useAppData';
 import { languageItem, restSoundItem, weightUnitItem } from './lib/savedData';
 import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } from './lib/restTime';
 import { unlockRestSound } from './lib/restAlert';
-import { completedIndexes, cycleProgress, previousBest, setDetails, tickedSetCount } from './lib/store/selectors';
+import { completedIndexes, cycleProgress, previousBest, remarkForSlot, setDetails, setTags, tickedSetCount } from './lib/store/selectors';
 import { shouldAutoOpenReport } from './lib/store/reportAutoOpen';
-import { currentWeekNumber } from './lib/weeks';
+import { currentWeekNumber, formatShortDay } from './lib/weeks';
+import { lastTimeFor } from './lib/lastTime';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle, RefreshCw, X } from 'lucide-react';
 
@@ -30,9 +40,21 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek, swapExercise, setRemark } = useAppData();
   // A short notice when another tab's newer save replaced something here (see appDataStore)
-  const [tabNotice, setTabNotice] = useState<'droppedChange' | 'weekStartedElsewhere' | null>(null);
+  // droppedChange: an unsaved change here lost; weekStartedElsewhere: Start new week happened there first;
+  // updated: a swap or note found newer data from another tab (shown now)
+  const [tabNotice, setTabNotice] = useState<'droppedChange' | 'weekStartedElsewhere' | 'updated' | null>(null);
+  // The slot whose exercise chooser is open, or null
+  const [swapSlotId, setSwapSlotId] = useState<string | null>(null);
+  // The slot whose note editor is open, or null
+  const [remarkSlotId, setRemarkSlotId] = useState<string | null>(null);
+  // The slot whose tag sheet ("how did each set feel?") is open, or null
+  const [tagSlotId, setTagSlotId] = useState<string | null>(null);
+  // The newest ticked set, asked about in the tag prompt above the rest timer (in memory only, like the timer).
+  // One at a time: the next tick replaces it. It stays (also after the rest ends or is skipped) until a tag is
+  // tapped, it is dismissed, or the set is no longer ticked or already has a tag.
+  const [tagPrompt, setTagPrompt] = useState<{ slotId: string; setIndex: number } | null>(null);
 
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
@@ -140,7 +162,13 @@ export const App: React.FC = () => {
     dispatch({ type: 'toggleSet', slotId: exerciseId, setIndex, unit: weightUnit });
     // Rest timer: only when this tap turns a not-done set into a done one
     if (!wasDone) startRestAfterTick(exerciseId, setIndex);
+    // The tag prompt moves to the set just ticked; unticking the asked-about set closes it
+    if (!wasDone) setTagPrompt({ slotId: exerciseId, setIndex });
+    else if (tagPrompt?.slotId === exerciseId && tagPrompt.setIndex === setIndex) setTagPrompt(null);
   };
+
+  // How a ticked set felt (Easy / Good / Max, or null to clear): saved like a tick, never touches the timer
+  const handleSetTag = (slotId: string, setIndex: number, tag: SetTag | null) => dispatch({ type: 'setTag', slotId, setIndex, tag });
 
   const handleUpdateWeight = (exerciseId: string, setIndex: number, weight: string) =>
     dispatch({ type: 'editWeight', slotId: exerciseId, setIndex, weight, unit: weightUnit });
@@ -148,10 +176,17 @@ export const App: React.FC = () => {
   const handleUpdateReps = (exerciseId: string, setIndex: number, reps: string) =>
     dispatch({ type: 'editReps', slotId: exerciseId, setIndex, reps, unit: weightUnit });
 
-  // Reset the active day / all 5 days: current week only, bests stay (as before)
-  const handleResetActiveDay = () => dispatch({ type: 'resetDay', slotIds: activeDay.exercises.map((ex) => ex.id) });
+  // Reset the active day / all 5 days: current week only, bests stay (as before). Tags go with the sets.
+  const handleResetActiveDay = () => {
+    const slotIds = activeDay.exercises.map((ex) => ex.id);
+    dispatch({ type: 'resetDay', slotIds });
+    if (tagPrompt && slotIds.includes(tagPrompt.slotId)) setTagPrompt(null);
+  };
 
-  const handleResetAll = () => dispatch({ type: 'resetAll' });
+  const handleResetAll = () => {
+    dispatch({ type: 'resetAll' });
+    setTagPrompt(null);
+  };
 
   // Start new week (from the weekly report): archive this week, then a fresh Day 1 with no rest running.
   // Only for the week on screen; if another tab already started a new week, that one is shown instead.
@@ -159,16 +194,73 @@ export const App: React.FC = () => {
   const pastWeek = pastWeekIndex !== null ? appData.archivedCycles[pastWeekIndex] ?? null : null;
 
   const startNewWeekAvailability = savingDisabled ? 'savingOff' : tickedSetCount(appData.currentCycle) === 0 ? 'empty' : 'ready';
+  // Swap (the exercise chooser): saved right away by the store, which also checks the rule again on the
+  // newest data. If another tab changed things meanwhile, the newest data is shown with a notice.
+  const swapSlot = swapSlotId ? activeDay.exercises.find((exercise) => exercise.id === swapSlotId) ?? null : null;
+
+  // Notes belong to the exercise actually done in the slot (Day 2 and Day 5 Leg Press share one; a
+  // swapped-in alternative has its own). Saved right away; another tab's newer data is kept (notice).
+  const remarkSlot = remarkSlotId ? activeDay.exercises.find((exercise) => exercise.id === remarkSlotId) ?? null : null;
+  const remarkExercise = remarkSlot ? performedExercise(remarkSlot, performedExerciseIdIn(appData.currentCycle, remarkSlot.id)) : null;
+  const handleSaveRemark = (text: string): RemarkResult => {
+    if (!remarkExercise) return { ok: false, reason: 'unknownExercise', updatedFromOtherTab: false };
+    const result = setRemark(remarkExercise.performedExerciseId, text);
+    if (result.updatedFromOtherTab) setTabNotice('updated');
+    return result;
+  };
+  const handleSwap = (to: string): SwapResult => {
+    if (!swapSlot) return { ok: false, reason: 'notAllowed', updatedFromOtherTab: false };
+    const from = swapOptions(appData, swapSlot.id).current;
+    const result = swapExercise({ cycleId: appData.currentCycle.id, slotId: swapSlot.id, from, to });
+    const otherTab = result.updatedFromOtherTab || (!result.ok && (result.reason === 'weekChanged' || result.reason === 'changedElsewhere'));
+    if (otherTab) setTabNotice('updated');
+    return result;
+  };
+
   const handleStartNewWeek = () => {
     const result = startNewWeek(appData.currentCycle.id);
     if (result.ok || result.reason === 'alreadyStarted') {
       setIsWeeklyReportOpen(false);
       setActiveDayId(enrichedDays[0].id);
       setRestTimer(null);
+      setTagPrompt(null);
       if (!result.ok) setTabNotice('weekStartedElsewhere');
     }
     return result;
   };
+
+  // "Last time" for a slot: the newest past week its exercise was done, weights in the current unit
+  const lastTimeOf = (slotId: string) => {
+    const found = lastTimeFor(appData, slotId, weightUnit);
+    return found ? { date: formatShortDay(found.date, lang), sets: found.sets } : undefined;
+  };
+
+  // Tags: the sheet for one slot of the active day, and the prompt for the newest ticked set (any day)
+  const tagSlot = tagSlotId ? activeDay.exercises.find((exercise) => exercise.id === tagSlotId) ?? null : null;
+  const promptSlot = tagPrompt ? enrichedDays.flatMap((day) => day.exercises).find((exercise) => exercise.id === tagPrompt.slotId) ?? null : null;
+  const showTagPrompt =
+    tagPrompt !== null &&
+    promptSlot !== null &&
+    completedIndexes(appData, tagPrompt.slotId).includes(tagPrompt.setIndex) &&
+    setTags(appData, tagPrompt.slotId)[tagPrompt.setIndex] === undefined;
+
+  // The fixed bottom dock (tag prompt above the rest timer): the page gets as much room at the bottom as it
+  // takes, so nothing stays hidden behind it (just the timer: 80px, as before)
+  const showDock = restTimer !== null || showTagPrompt;
+  const dockRef = useRef<HTMLDivElement | null>(null);
+  const [dockHeight, setDockHeight] = useState(0);
+  useLayoutEffect(() => {
+    const dock = dockRef.current;
+    if (!dock) {
+      setDockHeight(0);
+      return;
+    }
+    const update = () => setDockHeight(Math.round(dock.getBoundingClientRect().height));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(dock);
+    return () => observer.disconnect();
+  }, [showDock]);
 
   const handleOpenVideoModal = (videoUrl: string, posterUrl: string, title: string) => {
     setModalState({
@@ -189,7 +281,7 @@ export const App: React.FC = () => {
   return (
     <div
       className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex flex-col font-sans"
-      style={restTimer ? { paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' } : undefined}
+      style={showDock && dockHeight > 0 ? { paddingBottom: dockHeight } : undefined}
     >
       {/* Header Banner */}
       <HeaderBanner
@@ -233,7 +325,9 @@ export const App: React.FC = () => {
             className="mb-3 flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 pl-3 text-xs leading-snug text-sky-100"
           >
             <RefreshCw className="w-4 h-4 shrink-0 text-sky-300" />
-            <span className="flex-1 py-2">{tabNotice === 'droppedChange' ? t.updatedFromOtherTab : t.weekStartedElsewhere}</span>
+            <span className="flex-1 py-2">
+              {tabNotice === 'droppedChange' ? t.updatedFromOtherTab : tabNotice === 'weekStartedElsewhere' ? t.weekStartedElsewhere : t.updatedFromOtherTabNeutral}
+            </span>
             <button
               type="button"
               onClick={() => setTabNotice(null)}
@@ -363,7 +457,15 @@ export const App: React.FC = () => {
           {activeDay.exercises.map((exercise, idx) => (
             <ExerciseCard
               key={exercise.id}
-              exercise={exercise}
+              exercise={performedExercise(exercise, performedExerciseIdIn(appData.currentCycle, exercise.id))}
+              remark={{ text: remarkForSlot(appData, exercise.id), onEdit: () => setRemarkSlotId(exercise.id) }}
+              tags={{ bySet: setTags(appData, exercise.id), onOpen: () => setTagSlotId(exercise.id) }}
+              lastTime={lastTimeOf(exercise.id)}
+              swap={
+                alternativesForSlot(exercise.id).length > 0
+                  ? { isSwapped: performedExerciseIdIn(appData.currentCycle, exercise.id) !== exerciseIdForSlotId(exercise.id), onOpen: () => setSwapSlotId(exercise.id) }
+                  : undefined
+              }
               index={idx}
               lang={lang}
               completedSetIndexes={completedIndexes(appData, exercise.id)}
@@ -416,20 +518,38 @@ export const App: React.FC = () => {
         </div>
       </footer>
 
-      {/* Rest timer bar: z-40, so the dialogs below (z-50) always cover it */}
-      {restTimer && (
-        <RestTimerBar
-          key={restTimer.id}
-          lang={lang}
-          countdown={restTimer}
-          soundOn={restSound === 'on'}
-          onToggleSound={() => {
-            if (restSound === 'off') unlockRestSound();
-            setRestSound(restSound === 'on' ? 'off' : 'on');
-          }}
-          onAddTime={() => setRestTimer((timer) => timer && { ...timer, ...addRestTime(timer, Date.now(), 15) })}
-          onClose={() => setRestTimer(null)}
-        />
+      {/* Bottom dock: the tag prompt on its own line above the rest timer bar. z-45, above the header (z-40)
+          and the small sheets (z-42, which sit above it), below the dialogs (z-50) */}
+      {showDock && (
+        <div ref={dockRef} data-rest-bar className="fixed inset-x-0 bottom-0 z-[45] pb-[env(safe-area-inset-bottom)] pointer-events-none">
+          {showTagPrompt && tagPrompt && promptSlot && (
+            <TagPrompt
+              lang={lang}
+              setNumber={tagPrompt.setIndex + 1}
+              exerciseName={performedExerciseName(promptSlot, performedExerciseIdIn(appData.currentCycle, promptSlot.id), lang)}
+              hasTimerBelow={restTimer !== null}
+              onTag={(tag) => {
+                handleSetTag(tagPrompt.slotId, tagPrompt.setIndex, tag);
+                setTagPrompt(null);
+              }}
+              onDismiss={() => setTagPrompt(null)}
+            />
+          )}
+          {restTimer && (
+            <RestTimerBar
+              key={restTimer.id}
+              lang={lang}
+              countdown={restTimer}
+              soundOn={restSound === 'on'}
+              onToggleSound={() => {
+                if (restSound === 'off') unlockRestSound();
+                setRestSound(restSound === 'on' ? 'off' : 'on');
+              }}
+              onAddTime={() => setRestTimer((timer) => timer && { ...timer, ...addRestTime(timer, Date.now(), 15) })}
+              onClose={() => setRestTimer(null)}
+            />
+          )}
+        </div>
       )}
 
       {/* Fullscreen Video Modal */}
@@ -478,6 +598,47 @@ export const App: React.FC = () => {
         startNewWeek={{ availability: startNewWeekAvailability, onConfirm: handleStartNewWeek }}
         onClose={() => setIsWeeklyReportOpen(false)}
       />
+
+      {/* Note editor for the exercise actually done in one slot */}
+      {remarkSlot && remarkExercise && (
+        <RemarkSheet
+          open
+          lang={lang}
+          exerciseName={performedExerciseName(remarkSlot, remarkExercise.performedExerciseId, lang)}
+          initialText={remarkForSlot(appData, remarkSlot.id)}
+          onSave={handleSaveRemark}
+          onClose={() => setRemarkSlotId(null)}
+        />
+      )}
+
+      {/* How each set of one exercise felt (from the card's tag button) */}
+      {tagSlot && (
+        <TagSheet
+          open
+          lang={lang}
+          exerciseName={performedExerciseName(tagSlot, performedExerciseIdIn(appData.currentCycle, tagSlot.id), lang)}
+          totalSets={parseSetsCount(tagSlot.sets)}
+          completedSetIndexes={completedIndexes(appData, tagSlot.id)}
+          setDetails={setDetails(appData, tagSlot.id)}
+          tags={setTags(appData, tagSlot.id)}
+          lastTime={lastTimeOf(tagSlot.id)}
+          weightUnit={weightUnit}
+          onSetTag={(setIndex, tag) => handleSetTag(tagSlot.id, setIndex, tag)}
+          onClose={() => setTagSlotId(null)}
+        />
+      )}
+
+      {/* Exercise chooser for one slot (only slots with an alternative have a swap button) */}
+      {swapSlot && (
+        <SwapSheet
+          open
+          lang={lang}
+          slot={swapSlot}
+          options={swapOptions(appData, swapSlot.id)}
+          onSwap={handleSwap}
+          onClose={() => setSwapSlotId(null)}
+        />
+      )}
 
       {/* A past week's report, read-only, on top of the history list (closing it goes back to the list) */}
       {pastWeek && (

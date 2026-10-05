@@ -8,7 +8,7 @@ export interface LoggedSet {
   reps: string;
   unit: WeightUnit;
   done: boolean;
-  tag?: 'easy' | 'good' | 'max'; // no UI yet
+  tag?: 'easy' | 'good' | 'max'; // how a ticked set felt (never on an unticked set)
   updatedAt?: string;
 }
 
@@ -41,4 +41,7 @@ export interface AppDataV3 {
   archivedCycles: Cycle[];
   bests: Record<string, BestSet>; // keyed by shared exercise id
   reportShownCycleIds: string[];
+  // A permanent note per exercise id actually done (not weekly data). Optional: data saved before remarks
+  // existed has no such field, and it is only written once a remark exists.
+  remarks?: Record<string, string>;
 }

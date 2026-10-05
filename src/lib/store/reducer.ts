@@ -5,6 +5,9 @@ import { exerciseIdForSlotId } from '../exerciseIds';
 import { AppDataV3, LoggedSet, LoggedSlot } from '../model';
 import { WeightUnit, withRepsEdit, withWeightEdit } from '../units';
 import { hasDetail, tickedSetCount } from './selectors';
+import { applySwap, checkSwap } from './swap';
+import { knownExerciseIds } from '../exerciseVariants';
+import { normalizeRemark } from '../remarks';
 
 export type SetTag = 'easy' | 'good' | 'max';
 
@@ -20,7 +23,11 @@ export type StoreAction =
   // a restored backup (already checked with validateV3) replaces everything
   | { type: 'replaceAll'; data: AppDataV3 }
   // cycleId: the week the user was looking at; newId: the id for the new empty week
-  | { type: 'startNewWeek'; cycleId: string; newId: string };
+  | { type: 'startNewWeek'; cycleId: string; newId: string }
+  // which exercise a slot does this week (see swap.ts for the rule); from: the exercise the user saw there
+  | { type: 'swapExercise'; cycleId: string; slotId: string; from: string; to: string }
+  // a permanent note for an exercise id; empty text deletes it
+  | { type: 'setRemark'; exerciseId: string; text: string };
 
 export interface ReducerContext {
   now: Date;
@@ -48,14 +55,22 @@ const withSlot = (state: AppDataV3, slot: LoggedSlot): AppDataV3 => ({
 const withoutKey = <V>(record: Record<string, V>, key: string): Record<string, V> =>
   Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
 
+// A tag says how a finished set felt, so only a ticked set has one
+const withoutTag = (set: LoggedSet): LoggedSet => {
+  const { tag: _tag, ...untagged } = set;
+  return untagged;
+};
+
 // Bests only come from done sets and only go up (estimated 1RM in kg; a tie keeps the existing best).
-// Keyed by the shared exercise id, so the two slots of the same exercise share one best.
+// Keyed by the exercise actually done (performedExerciseId): the slot's own shared id, so two slots of the
+// same exercise share one best, or an alternative's own id, which never touches the default's best.
 const withBestFrom = (state: AppDataV3, slot: LoggedSlot, set: LoggedSet): AppDataV3 => {
   if (!set.done) return state;
+  const key = slot.performedExerciseId;
   const candidate = { weight: set.weight, reps: set.reps, unit: set.unit };
-  const current = hasOwn(state.bests, slot.exerciseId) ? state.bests[slot.exerciseId] : undefined;
+  const current = hasOwn(state.bests, key) ? state.bests[key] : undefined;
   if (!isNewBest(candidate, current)) return state;
-  return { ...state, bests: { ...state.bests, [slot.exerciseId]: candidate } };
+  return { ...state, bests: { ...state.bests, [key]: candidate } };
 };
 
 export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContext): AppDataV3 => {
@@ -64,14 +79,14 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
       const slot = getSlot(state, action.slotId) ?? newSlot(action.slotId);
       const existing = getSet(slot, action.setIndex);
       if (existing?.done) {
-        // Untick. A set that only ever had the tick disappears again; bests are never lowered.
-        const sets =
-          hasDetail(existing) || existing.tag !== undefined
-            ? { ...slot.sets, [action.setIndex]: { ...existing, done: false } }
-            : withoutKey(slot.sets, String(action.setIndex));
+        // Untick: the tag goes with it. A set that only ever had the tick disappears again; bests are never lowered.
+        const sets = hasDetail(existing)
+          ? { ...slot.sets, [action.setIndex]: { ...withoutTag(existing), done: false } }
+          : withoutKey(slot.sets, String(action.setIndex));
         return withSlot(state, { ...slot, sets });
       }
-      const set: LoggedSet = existing ? { ...existing, done: true } : { weight: '', reps: '', unit: action.unit, done: true };
+      // A newly ticked set never starts with a tag (not even one an older version left on the unticked set)
+      const set: LoggedSet = existing ? { ...withoutTag(existing), done: true } : { weight: '', reps: '', unit: action.unit, done: true };
       const nextSlot = { ...slot, sets: { ...slot.sets, [action.setIndex]: set } };
       return withBestFrom(withSlot(state, nextSlot), nextSlot, set);
     }
@@ -87,7 +102,9 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
         action.type === 'editWeight'
           ? withWeightEdit(stored, action.weight, action.unit)
           : withRepsEdit(stored, action.reps, action.unit);
-      const set: LoggedSet = { ...existing, ...edited, done: existing?.done ?? false, updatedAt: ctx.now.toISOString() };
+      // A ticked set keeps its tag when its numbers are corrected
+      const kept = existing ? (existing.done ? existing : withoutTag(existing)) : undefined;
+      const set: LoggedSet = { ...kept, ...edited, done: existing?.done ?? false, updatedAt: ctx.now.toISOString() };
       const nextSlot = { ...slot, sets: { ...slot.sets, [action.setIndex]: set } };
       const next = withSlot(state, nextSlot);
       // As today: a done set is checked for a new best only when its weight, reps or unit actually changed
@@ -96,16 +113,17 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
     }
 
     case 'setTag': {
+      // Only a ticked set can be tagged (null clears the tag). Tags never touch bests, volume or progress.
       const slot = getSlot(state, action.slotId);
       const existing = getSet(slot, action.setIndex);
-      if (!slot || !existing) return state; // nothing to tag
-      const { tag: _previousTag, ...untagged } = existing;
-      const set: LoggedSet = action.tag ? { ...untagged, tag: action.tag } : untagged;
+      if (!slot || !existing?.done || (existing.tag ?? null) === action.tag) return state;
+      const set: LoggedSet = action.tag ? { ...withoutTag(existing), tag: action.tag } : withoutTag(existing);
       return withSlot(state, { ...slot, sets: { ...slot.sets, [action.setIndex]: set } });
     }
 
     case 'resetDay': {
-      // Current cycle only; archived cycles and bests are never touched (bests stay, as today)
+      // Current cycle only; archived cycles and bests are never touched (bests stay, as today). Removing the
+      // slots also puts any swapped exercise back to the slot's own exercise.
       const slots = Object.fromEntries(Object.entries(state.currentCycle.slots).filter(([slotId]) => !action.slotIds.includes(slotId)));
       return { ...state, currentCycle: { ...state.currentCycle, slots } };
     }
@@ -114,8 +132,32 @@ export const reduce = (state: AppDataV3, action: StoreAction, ctx: ReducerContex
       // Current cycle only, same as resetDay: archived cycles and bests are never touched
       return { ...state, currentCycle: { ...state.currentCycle, slots: {} } };
 
-    case 'replaceAll':
-      return { ...action.data };
+    case 'replaceAll': {
+      // A backup made before remarks existed has no remarks field: the phone keeps its own remarks. A backup
+      // with the field (even empty) replaces them. No remarks are kept as no field at all.
+      const { remarks: _ignored, ...rest } = action.data;
+      const remarks = action.data.remarks === undefined ? state.remarks : action.data.remarks;
+      return remarks && Object.keys(remarks).length > 0 ? { ...rest, remarks } : rest;
+    }
+
+    case 'setRemark': {
+      // Only for exercise ids the app knows; the text is cleaned (see remarks.ts)
+      if (!knownExerciseIds.has(action.exerciseId)) return state;
+      const text = normalizeRemark(action.text);
+      const current = state.remarks && hasOwn(state.remarks, action.exerciseId) ? state.remarks[action.exerciseId] : undefined;
+      if ((current ?? '') === text) return state;
+      const others = Object.fromEntries(Object.entries(state.remarks ?? {}).filter(([id]) => id !== action.exerciseId));
+      if (text === '') {
+        // Deleting the last remark removes the field again
+        const { remarks: _old, ...rest } = state;
+        return Object.keys(others).length > 0 ? { ...rest, remarks: others } : rest;
+      }
+      return { ...state, remarks: { ...others, [action.exerciseId]: text } };
+    }
+
+    case 'swapExercise':
+      // Not allowed (ticked sets, another week, ...): nothing changes; the store reports the reason
+      return checkSwap(state, action).ok ? applySwap(state, action.slotId, action.to) : state;
 
     case 'startNewWeek': {
       // Nothing happens unless the user's week is still the current one (another tab may have moved on),

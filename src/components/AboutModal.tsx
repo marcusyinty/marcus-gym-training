@@ -1,6 +1,7 @@
 import React from 'react';
 import { Language, uiTranslations } from '../data/translations';
 import { updateLogs } from '../data/updates';
+import { APP_VERSION, formatLogDate } from '../lib/appInfo';
 import { AppDataV3 } from '../lib/model';
 import { RestoreResult } from '../lib/store/appDataStore';
 import { DataBackupSection } from './DataBackupSection';
@@ -63,14 +64,13 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
 
           {/* Dev Log / Updates Section Header */}
           <div className="pt-2 border-t border-[#1f1f24]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2 min-w-0">
                 <Rocket className="w-4 h-4 text-emerald-400" />
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">
-                  {lang === 'zh' ? '开发者日志与更新' : 'Developer Log & Updates'}
-                </h4>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">{t.devLogTitle}</h4>
               </div>
-              <span className="text-[10px] text-zinc-400 font-mono">v1.0.0</span>
+              {/* The app's real version (from package.json) */}
+              <span data-app-version className="text-[10px] text-zinc-400 font-mono shrink-0">v{APP_VERSION}</span>
             </div>
 
             {/* Updates Timeline */}
@@ -80,27 +80,43 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
                   key={log.id}
                   className="bg-[#18181c] border border-[#27272a] rounded-xl p-3.5 relative overflow-hidden group hover:border-zinc-700 transition-colors"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-2">
-                      {log.tag && (
-                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                          {log.tag}
-                        </span>
-                      )}
-                      <h5 className="text-xs sm:text-sm font-bold text-white font-['Plus_Jakarta_Sans']">
+                  {/* Phones: tag and date on the first row, the title on its own full-width row below (no squeezed
+                      title, no cut-off date). From sm up: tag, title and date in one row, as before. */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+                    {log.version && (
+                      <span data-log-version className="order-1 text-[10px] font-extrabold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        {log.version}
+                      </span>
+                    )}
+                    {log.tag && (
+                      <span className="order-1 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        {log.tag}
+                      </span>
+                    )}
+                    {log.title && (
+                      <h5 className="order-3 basis-full sm:order-2 sm:basis-auto sm:flex-1 min-w-0 text-xs sm:text-sm font-bold text-white font-['Plus_Jakarta_Sans']">
                         {log.title[lang]}
                       </h5>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-mono shrink-0">
+                    )}
+                    <div className="order-2 sm:order-3 ml-auto flex items-center gap-1 text-[10px] text-zinc-400 font-mono shrink-0">
                       <Clock className="w-3 h-3 text-zinc-500" />
-                      <span>{log.date}</span>
+                      <span>{formatLogDate(log, lang)}</span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-zinc-300 leading-relaxed font-sans mt-1">
-                    {log.content[lang]}
-                  </p>
+                  {log.content && (
+                    <p className="text-xs text-zinc-300 leading-relaxed font-sans mt-1">
+                      {log.content[lang]}
+                    </p>
+                  )}
+                  {/* A release's changes */}
+                  {log.bullets && (
+                    <ul data-log-bullets className="mt-1 space-y-1 pl-4 list-disc marker:text-emerald-500 text-xs text-zinc-300 leading-relaxed font-sans">
+                      {log.bullets[lang].map((bullet) => (
+                        <li key={bullet}>{bullet}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
@@ -110,7 +126,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
         {/* Info Footer Tags */}
         <div className="flex items-center justify-between text-[11px] text-zinc-400 gap-2 border-t border-[#1f1f24] pt-3 shrink-0">
           <span className="flex items-center gap-1.5 font-medium">
-            <Heart className="w-3.5 h-3.5 text-rose-400" /> Built for Progressive Overload
+            <Heart className="w-3.5 h-3.5 text-rose-400" /> {t.builtForOverload}
           </span>
           <span className="flex items-center gap-1.5 font-medium text-zinc-500">
             <Code className="w-3.5 h-3.5 text-cyan-400" /> Vercel & Cloudinary

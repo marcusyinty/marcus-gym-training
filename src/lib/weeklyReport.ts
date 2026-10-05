@@ -2,8 +2,9 @@
 // used. Only ticked sets count; each set keeps the unit it was typed in, tops are compared in kg and volume
 // is added up in the unit the app shows now. Pure, so the report, the history list and the tests agree.
 import { parseSetsCount } from '../utils/parseSetsCount';
+import { performedExerciseIdIn } from './exerciseVariants';
 import { Cycle } from './model';
-import { cycleCompletedIndexes, cycleSetDetails, ProgramDay, progressOfCycle, tickedSetCount } from './store/selectors';
+import { cycleCompletedIndexes, cycleSetDetails, cycleSetTag, ProgramDay, progressOfCycle, tickedSetCount } from './store/selectors';
 import { convertWeight, displayWeight, parseNumber, toKg, WeightUnit } from './units';
 
 // The best ticked set of one exercise, as the report shows it
@@ -14,10 +15,12 @@ export type TopSet =
   | { kind: 'weight'; weightText: string; reps: number }; // weightText in the report's unit; reps 0 = not typed
 
 export interface ExerciseReport {
-  id: string;
+  id: string; // the slot
+  performedExerciseId: string; // the exercise done in it that week (its own, or a swapped-in alternative)
   top: TopSet;
   volume: number; // in the report's unit
   complete: boolean; // every set of the exercise ticked
+  maxSets: number[]; // set numbers (1, 2, ...) of ticked sets tagged Max; tags change none of the numbers above
 }
 
 export interface DayReport {
@@ -67,7 +70,14 @@ const exerciseReport = (cycle: Cycle, exercise: ProgramDay['exercises'][number],
           ? { kind: 'bodyweight', reps: maxReps }
           : { kind: 'ticked', sets: doneIndexes.length };
   const setCount = parseSetsCount(exercise.sets);
-  return { id: exercise.id, top, volume, complete: setCount > 0 && Math.min(doneIndexes.length, setCount) === setCount };
+  return {
+    id: exercise.id,
+    performedExerciseId: performedExerciseIdIn(cycle, exercise.id),
+    top,
+    volume,
+    complete: setCount > 0 && Math.min(doneIndexes.length, setCount) === setCount,
+    maxSets: doneIndexes.filter((index) => cycleSetTag(cycle, exercise.id, index) === 'max').map((index) => index + 1),
+  };
 };
 
 export const buildWeeklyReport = (cycle: Cycle, program: ProgramDay[], unit: WeightUnit): WeeklyReport => {

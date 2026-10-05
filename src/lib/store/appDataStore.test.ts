@@ -192,6 +192,26 @@ describe('two tabs', () => {
     expect(completedIndexes(tabB.getState(), 'squat')).toEqual([]);
   });
 
+  it("stale tab: the other tab's tag is kept and the tag tapped here is dropped (counted, so the page can say so)", () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, () => 'a'));
+    tabA.dispatch(tick('bench', 0));
+    tabA.dispatch(tick('bench', 1));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared, () => 'b')); // opened now: sees both ticks
+    tabB.dispatch({ type: 'setTag', slotId: 'bench', setIndex: 0, tag: 'max' });
+    tabB.flush();
+    // A never heard about B's save (e.g. the phone kept it asleep) and tags set 2
+    tabA.dispatch({ type: 'setTag', slotId: 'bench', setIndex: 1, tag: 'easy' });
+    vi.advanceTimersByTime(1000);
+    const saved = JSON.parse(shared.getItem(STORAGE_KEY_V3)!) as AppDataV3;
+    expect(saved.currentCycle.slots.bench.sets[0].tag).toBe('max');
+    expect(saved.currentCycle.slots.bench.sets[1].tag).toBeUndefined();
+    expect(tabA.getState().currentCycle.slots.bench.sets[0].tag).toBe('max');
+    expect(completedIndexes(tabA.getState(), 'bench')).toEqual([0, 1]);
+    expect(tabA.getDroppedChangeCount()).toBe(1);
+  });
+
   it('removed key or unreadable text from another tab is ignored', () => {
     const storage = new MemoryStorage(V2_RECORDED);
     const store = createAppDataStore(options(storage));
@@ -505,5 +525,125 @@ describe('start new week and stale tabs', () => {
     tabB.receiveExternal(shared.getItem(STORAGE_KEY_V3));
     for (const data of [stored(shared), tabB.getState()]) expect(data.archivedCycles.map((c) => c.id)).toEqual(['old-1', 'old-2', 'old-3']);
     expect(stored(shared)).toEqual(backup);
+  });
+});
+
+describe('swapping a slot (saved right away, stale tabs)', () => {
+  const ids = (...list: string[]) => {
+    let i = 0;
+    return () => list[i++] ?? `extra-${i}`;
+  };
+  const stored = (storage: MemoryStorage) => JSON.parse(storage.getItem(STORAGE_KEY_V3)!) as AppDataV3;
+  const request = (cycleId: string, from = 'leg-press', to = 'hack-squat') => ({ cycleId, slotId: 'leg-press', from, to });
+
+  it('a swap is saved straight away; typed values are cleared and reported', () => {
+    const storage = new MemoryStorage();
+    const store = createAppDataStore(options(storage, ids('w1')));
+    store.dispatch({ type: 'editWeight', slotId: 'leg-press', setIndex: 0, weight: '220', unit: 'kg' }); // waiting, not ticked
+    expect(store.swapExercise(request('w1'))).toEqual({ ok: true, clearedTypedValues: true, updatedFromOtherTab: false });
+    expect(stored(storage).currentCycle.slots['leg-press']).toEqual({ slotId: 'leg-press', exerciseId: 'leg-press', performedExerciseId: 'hack-squat', sets: {} });
+    vi.advanceTimersByTime(1000);
+    expect(stored(storage).currentCycle.slots['leg-press'].sets).toEqual({}); // the old waiting change never comes back
+  });
+
+  it('a stale tab cannot swap a slot that another tab ticked meanwhile', () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, ids('w1')));
+    tabA.flush();
+    tabA.dispatch(tick('squat', 0));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared));
+    tabA.dispatch(tick('leg-press', 0));
+    tabA.flush();
+    const writes = shared.writes.length;
+    // B never heard about A's tick on leg-press
+    expect(tabB.swapExercise(request('w1'))).toEqual({ ok: false, reason: 'hasTickedSets', updatedFromOtherTab: true });
+    expect([shared.writes.length, completedIndexes(tabB.getState(), 'leg-press')]).toEqual([writes, [0]]);
+  });
+
+  it('a stale tab cannot swap again what another tab already swapped, nor swap in an old week', () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, ids('w1', 'w2')));
+    tabA.dispatch(tick('squat', 0));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared));
+    expect(tabA.swapExercise(request('w1')).ok).toBe(true);
+    expect(tabB.swapExercise(request('w1'))).toEqual({ ok: false, reason: 'changedElsewhere', updatedFromOtherTab: true });
+    const tabC = createAppDataStore(options(shared));
+    expect(tabA.startNewWeek('w1')).toEqual({ ok: true });
+    expect(tabC.swapExercise(request('w1', 'hack-squat', 'leg-press'))).toEqual({ ok: false, reason: 'weekChanged', updatedFromOtherTab: true });
+    expect(stored(shared).archivedCycles.map((c) => c.slots['leg-press']?.performedExerciseId)).toEqual(['hack-squat']);
+  });
+
+  it("a waiting change of this tab is saved first; another tab's data is kept", () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared, ids('w1')));
+    tabA.flush();
+    tabA.dispatch(tick('bench', 0)); // waiting in A
+    expect(tabA.swapExercise(request('w1')).ok).toBe(true);
+    expect([completedIndexes(stored(shared), 'bench'), stored(shared).currentCycle.slots['leg-press'].performedExerciseId]).toEqual([[0], 'hack-squat']);
+  });
+
+  it('refused in an error session or when storage is full; nothing changes', () => {
+    const errorStorage = new MemoryStorage({ ...V2_RECORDED });
+    const errorStore = createAppDataStore(options(errorStorage, () => { throw new Error('no ids'); }));
+    expect(errorStore.swapExercise(request(errorStore.getState().currentCycle.id))).toEqual({ ok: false, reason: 'savingOff', updatedFromOtherTab: false });
+    expect(errorStorage.writes).toEqual([]);
+    const full = new MemoryStorage();
+    const store = createAppDataStore(options(full, ids('w1')));
+    full.setItem = () => { throw new DOMException('full', 'QuotaExceededError'); };
+    const before = store.getState();
+    expect(store.swapExercise(request('w1'))).toEqual({ ok: false, reason: 'saveFailed', updatedFromOtherTab: false });
+    expect(store.getState()).toBe(before);
+  });
+});
+
+describe('remarks in the store (saved right away, stale tabs, restores)', () => {
+  const stored = (storage: MemoryStorage) => JSON.parse(storage.getItem(STORAGE_KEY_V3)!) as AppDataV3;
+
+  it('a remark is saved straight away and comes back cleaned', () => {
+    const storage = new MemoryStorage();
+    const store = createAppDataStore(options(storage));
+    expect(store.setRemark('btb-lateral-raise', '  pulley at hole 5  ')).toEqual({ ok: true, saved: 'pulley at hole 5', updatedFromOtherTab: false });
+    expect(stored(storage).remarks).toEqual({ 'btb-lateral-raise': 'pulley at hole 5' });
+    expect(store.setRemark('btb-lateral-raise', '')).toEqual({ ok: true, saved: '', updatedFromOtherTab: false });
+    expect('remarks' in stored(storage)).toBe(false);
+    expect(store.setRemark('made-up', 'x')).toEqual({ ok: false, reason: 'unknownExercise', updatedFromOtherTab: false });
+  });
+
+  it("a stale tab saving a remark keeps the other tab's remarks and data, and says it was updated", () => {
+    const shared = new MemoryStorage();
+    const tabA = createAppDataStore(options(shared));
+    tabA.dispatch(tick('leg-press', 0));
+    tabA.flush();
+    const tabB = createAppDataStore(options(shared));
+    expect(tabA.setRemark('leg-press', 'seat 4').ok).toBe(true);
+    tabA.dispatch(tick('leg-press', 1));
+    tabA.flush();
+    // B never heard about A's remark or second tick
+    expect(tabB.setRemark('incline-db-press', 'bench 3 holes up')).toEqual({ ok: true, saved: 'bench 3 holes up', updatedFromOtherTab: true });
+    expect([stored(shared).remarks, completedIndexes(stored(shared), 'leg-press')]).toEqual([{ 'leg-press': 'seat 4', 'incline-db-press': 'bench 3 holes up' }, [0, 1]]);
+  });
+
+  it('not saved in an error session', () => {
+    const errorStorage = new MemoryStorage({ ...V2_RECORDED });
+    const store = createAppDataStore(options(errorStorage, () => { throw new Error('no ids'); }));
+    expect(store.setRemark('leg-press', 'seat 4')).toEqual({ ok: false, reason: 'savingOff', updatedFromOtherTab: false });
+    expect(errorStorage.writes).toEqual([]);
+  });
+
+  it('restores: an old backup keeps the remarks, a new one replaces them; the safety copy has them both times', () => {
+    const run = (backupData: AppDataV3) => {
+      const storage = new MemoryStorage();
+      const store = createAppDataStore({ ...options(storage), now: () => new Date('2026-10-05T09:00:00.000Z') });
+      store.setRemark('leg-press', 'seat 4');
+      store.restore(backupData);
+      const copyKey = [...storage.data.keys()].find((k) => k.startsWith(PRE_RESTORE_PREFIX))!;
+      return { remarks: stored(storage).remarks, safetyCopyRemarks: JSON.parse(storage.getItem(copyKey)!).remarks };
+    };
+    const base = { schemaVersion: 3 as const, currentCycle: { id: 'restored', startedAt: 't', slots: {} }, archivedCycles: [], bests: {}, reportShownCycleIds: [] };
+    expect(run(base)).toEqual({ remarks: { 'leg-press': 'seat 4' }, safetyCopyRemarks: { 'leg-press': 'seat 4' } }); // no remarks field: kept
+    expect(run({ ...base, remarks: {} })).toEqual({ remarks: undefined, safetyCopyRemarks: { 'leg-press': 'seat 4' } }); // empty field: replaced
+    expect(run({ ...base, remarks: { 'pec-deck': 'seat 2' } })).toEqual({ remarks: { 'pec-deck': 'seat 2' }, safetyCopyRemarks: { 'leg-press': 'seat 4' } });
   });
 });

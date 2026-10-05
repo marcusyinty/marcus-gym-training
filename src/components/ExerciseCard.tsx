@@ -5,10 +5,14 @@ import { AnatomyMap } from './AnatomyMap';
 import { displayWeight, WeightUnit } from '../lib/units';
 import { parseSetsCount } from '../utils/parseSetsCount';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import type { SetTag } from '../lib/store/reducer';
+import type { LastTimeSet } from '../lib/lastTime';
+import { setResultText } from '../lib/reportText';
+import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, ArrowLeftRight, PencilLine, Tag, Flag } from 'lucide-react';
 
 interface ExerciseCardProps {
-  exercise: EnrichedExercise;
+  // The exercise done in this slot this week: the program's, or a swapped-in alternative (see performedExercise)
+  exercise: EnrichedExercise & { isAlternative?: boolean; nameZh?: string };
   index: number;
   lang: Language;
   completedSetIndexes: number[];
@@ -20,6 +24,15 @@ interface ExerciseCardProps {
   onUpdateWeight: (exerciseId: string, setIndex: number, weight: string) => void;
   onUpdateReps: (exerciseId: string, setIndex: number, reps: string) => void;
   onOpenVideoModal: (videoUrl: string, posterUrl: string, title: string) => void;
+  // Only for slots that have an alternative: the swap button (amber "Swapped" while an alternative is done)
+  swap?: { isSwapped: boolean; onOpen: () => void };
+  // The note of the exercise actually done, and opening its editor
+  remark?: { text: string; onEdit: () => void };
+  // How each ticked set felt (shown in its tick button) and opening the tag sheet
+  tags?: { bySet: Record<number, SetTag>; onOpen: () => void };
+  // The sets ticked the last past week this exercise was done (weights already in weightUnit), and that
+  // day as short text (null if unreadable). Undefined when there is no history: nothing is shown.
+  lastTime?: { date: string | null; sets: Record<number, LastTimeSet> };
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -35,6 +48,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onUpdateWeight,
   onUpdateReps,
   onOpenVideoModal,
+  swap,
+  remark,
+  tags,
+  lastTime,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -51,10 +68,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const t = uiTranslations[lang];
   const zhEx = exerciseTranslationsZh[exercise.id];
 
-  const exerciseName = lang === 'zh' && zhEx ? zhEx.name : exercise.name;
+  // A swapped-in alternative has its own name and no description yet; muscles stay the slot's
+  const exerciseName = exercise.isAlternative
+    ? lang === 'zh' && exercise.nameZh ? exercise.nameZh : exercise.name
+    : lang === 'zh' && zhEx ? zhEx.name : exercise.name;
   const primaryMuscles = lang === 'zh' && zhEx ? zhEx.primaryMuscles : exercise.primaryMuscles;
   const secondaryMuscles = lang === 'zh' && zhEx ? zhEx.secondaryMuscles : exercise.secondaryMuscles;
-  const coachingCue = lang === 'zh' && zhEx ? zhEx.coachingCue : exercise.coachingCue;
+  const coachingCue = exercise.isAlternative ? exercise.coachingCue : lang === 'zh' && zhEx ? zhEx.coachingCue : exercise.coachingCue;
+  const hasCue = coachingCue.trim() !== '';
 
   // Derive total sets count
   const totalSets = parseSetsCount(exercise.sets);
@@ -118,6 +139,51 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   };
   const setInputLabelClass =
     'pointer-events-none absolute inset-x-0 bottom-1 text-center text-xs leading-none font-bold text-zinc-400';
+
+  // The row under the name: the note (one line, the editor shows all of it) and, only on slots with an
+  // alternative, the swap button. It changes only after a save, never while typing in the editor.
+  const remarkLine = remark?.text.replace(/\n+/g, ' · ') ?? '';
+  const actionsRow = remark || swap ? (
+    <div data-exercise-actions className="mt-2.5 flex items-center gap-2">
+      {remark ? (
+        <button
+          type="button"
+          onClick={remark.onEdit}
+          aria-haspopup="dialog"
+          aria-label={t.remarkRowLabel(exerciseName, remarkLine)}
+          data-remark-row
+          className="flex-1 min-w-0 h-11 px-3 flex items-center gap-2 rounded-xl border border-[#27272a] bg-[#0d0d10] text-left hover:border-zinc-600 cursor-pointer"
+        >
+          <PencilLine className="w-4 h-4 shrink-0 text-zinc-500" />
+          <span className={`min-w-0 flex-1 truncate text-xs ${remarkLine ? 'text-zinc-200' : 'italic text-zinc-500'}`}>
+            {remarkLine || t.remarkPlaceholder}
+          </span>
+        </button>
+      ) : (
+        <div className="flex-1 min-w-0" />
+      )}
+      {swap && (
+        <button
+          type="button"
+          onClick={swap.onOpen}
+          aria-haspopup="dialog"
+          aria-label={t.swapButtonLabel(exerciseName)}
+          data-swap-button
+          className={`h-11 px-3 shrink-0 flex items-center gap-1.5 rounded-xl border text-xs font-bold cursor-pointer ${
+            swap.isSwapped
+              ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+              : 'border-zinc-700 bg-[#18181c] text-zinc-200 hover:border-zinc-500'
+          }`}
+        >
+          <ArrowLeftRight className="w-4 h-4" />
+          {swap.isSwapped ? t.swappedButton : t.swapButton}
+        </button>
+      )}
+    </div>
+  ) : null;
+
+  // The date is written once per card: on the first set row that has a "last time" line
+  const firstLastTimeIndex = Array.from({ length: totalSets }, (_, i) => i).find((i) => lastTime?.sets[i] !== undefined);
 
   const prevBestText =
     previousBest && (previousBest.weight || previousBest.reps)
@@ -273,7 +339,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             ))}
           </div>
 
-          {/* Coaching Cue Box */}
+          {actionsRow}
+
+          {/* Coaching Cue Box (hidden while an alternative has no description yet) */}
+          {hasCue && (
           <div className="mt-3 bg-[#0d0d10] border border-[#222227] rounded-xl p-3 relative overflow-hidden">
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-1">
               <Sparkles className="w-3.5 h-3.5" />
@@ -283,6 +352,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               "{coachingCue}"
             </p>
           </div>
+          )}
           </>
           ) : (
           <>
@@ -302,11 +372,15 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 </span>
               </button>
             ) : (
+              // No video (e.g. a swapped-in alternative, whose video isn't made yet)
               <div
-                aria-hidden="true"
-                className="w-[72px] h-24 shrink-0 rounded-xl border border-[#27272a] bg-[#09090b] flex items-center justify-center text-zinc-400"
+                role="img"
+                aria-label={t.noVideoYet}
+                data-no-video
+                className="w-[72px] h-24 shrink-0 rounded-xl border border-[#27272a] bg-[#09090b] flex flex-col items-center justify-center gap-1 text-zinc-400"
               >
                 <Video className="w-5 h-5" />
+                <span className="px-1 text-[10px] leading-tight text-center text-zinc-500">{t.noVideoYet}</span>
               </div>
             )}
 
@@ -342,7 +416,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
           </div>
 
-          {/* Coaching cue: 2 lines, tap to show all */}
+          {actionsRow}
+
+          {/* Coaching cue: 2 lines, tap to show all (hidden while an alternative has no description yet) */}
+          {hasCue && (
           <button
             onClick={() => setIsCueExpanded((expanded) => !expanded)}
             aria-expanded={isCueExpanded}
@@ -356,6 +433,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </span>
             <ChevronDown className={`w-4 h-4 shrink-0 text-zinc-400 transition-transform ${isCueExpanded ? 'rotate-180' : ''}`} />
           </button>
+          )}
 
           </>
           )}
@@ -372,6 +450,21 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* How each set felt: opens the tag sheet (2 taps to tag any ticked set) */}
+              {tags && (
+                <button
+                  type="button"
+                  onClick={tags.onOpen}
+                  aria-haspopup="dialog"
+                  aria-label={t.tagsButtonLabel(exerciseName)}
+                  title={t.tagSheetTitle}
+                  data-tags-button
+                  className="h-11 w-11 shrink-0 flex items-center justify-center rounded-lg bg-[#18181c] ring-1 ring-zinc-800 text-zinc-300 hover:text-white cursor-pointer"
+                >
+                  <Tag className="w-4 h-4" />
+                </button>
+              )}
+
               {/* kg / lbs Unit Switcher */}
               <div className="flex items-center h-10 bg-[#18181c] ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs font-bold">
                 <button
@@ -408,14 +501,16 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 const isCompleted = completedSetIndexes.includes(sIdx);
                 const detail = setDetails[sIdx] || { weight: '', reps: '', unit: weightUnit };
                 const setNumber = sIdx + 1;
+                const tag = isCompleted ? tags?.bySet[sIdx] : undefined;
+                const last = lastTime?.sets[sIdx];
 
                 return (
                   <div
                     key={sIdx}
                     data-set-row
-                    className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg border transition-colors ${
-                      isCompleted ? 'bg-emerald-500/15 border-emerald-500' : 'bg-[#121215] border-[#222227]'
-                    }`}
+                    className={`flex items-center px-1.5 rounded-lg border transition-colors ${
+                      last ? 'flex-wrap gap-x-1.5 gap-y-0 py-0.5' : 'gap-1.5 py-1'
+                    } ${isCompleted ? 'bg-emerald-500/15 border-emerald-500' : 'bg-[#121215] border-[#222227]'}`}
                   >
                     {/* Set number ("Set 1" for screen readers) */}
                     <span
@@ -468,19 +563,39 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       </div>
                     </div>
 
-                    {/* Done / not done (same handler as before) */}
+                    {/* Done / not done (same handler as before); a ticked set's tag is written under the tick */}
                     <button
                       onClick={() => onToggleSet(exercise.id, sIdx)}
                       aria-pressed={isCompleted}
-                      aria-label={t.setDoneLabel(setNumber)}
-                      className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      aria-label={tag ? t.setDoneTaggedLabel(setNumber, t.tagNames[tag]) : t.setDoneLabel(setNumber)}
+                      data-set-tag={tag}
+                      className={`w-12 h-12 shrink-0 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
                         isCompleted
                           ? 'bg-emerald-500 text-black shadow-sm shadow-emerald-500/30'
                           : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
                       }`}
                     >
-                      <Check className={`w-6 h-6 ${isCompleted ? 'stroke-[3]' : ''}`} />
+                      <Check className={`${tag ? 'w-5 h-5' : 'w-6 h-6'} ${isCompleted ? 'stroke-[3]' : ''}`} />
+                      {tag && <span className="mt-px text-[10px] leading-3 font-extrabold uppercase">{t.tagNames[tag]}</span>}
                     </button>
+
+                    {/* What this set was last time (only sets ticked then), under the inputs; Max gets a calm flag */}
+                    {last && (
+                      <div data-last-time className="basis-full min-w-0 h-3 pl-[30px] flex items-center gap-1 text-[11px] leading-3 text-zinc-400">
+                        <span className="min-w-0 truncate">
+                          {t.lastTimeLine(sIdx === firstLastTimeIndex ? lastTime?.date ?? null : null, setResultText(last.weight, last.reps, weightUnit, t))}
+                        </span>
+                        {last.tag === 'max' ? (
+                          <span data-last-time-max className="shrink-0 flex items-center gap-0.5 font-bold text-amber-300">
+                            <span aria-hidden="true" className="text-zinc-500 font-normal">·</span>
+                            <Flag aria-hidden="true" className="w-3 h-3" />
+                            {t.tagNames.max}
+                          </span>
+                        ) : (
+                          last.tag && <span className="shrink-0">· {t.tagNames[last.tag]}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

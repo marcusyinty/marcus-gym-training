@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { EnrichedWorkoutDay } from '../types/workout';
-import { Language, dayTranslationsZh } from '../data/translations';
+import { Language, dayTranslationsZh, uiTranslations } from '../data/translations';
 
 interface DayNavigationProps {
   days: EnrichedWorkoutDay[];
@@ -17,6 +17,7 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
   onSelectDay,
   dayCompletionStats,
 }) => {
+  const t = uiTranslations[lang];
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
   const [edgeFades, setEdgeFades] = useState({ left: false, right: false });
@@ -95,10 +96,10 @@ export const DayNavigation: React.FC<DayNavigationProps> = ({
                         : 'bg-zinc-800 text-zinc-400'
                     }`}
                   >
-                    Day {day.dayNumber}
+                    {t.dayPill(day.dayNumber)}
                   </span>
                   <span className="text-xs leading-4 text-zinc-400 font-medium ml-auto">
-                    {day.exercises.length} {lang === 'zh' ? '项' : 'Ex'}
+                    {t.exerciseCountShort(day.exercises.length)}
                   </span>
                 </div>
 

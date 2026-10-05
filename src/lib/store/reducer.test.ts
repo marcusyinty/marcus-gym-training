@@ -4,6 +4,7 @@ import { AppDataV3, Cycle } from '../model';
 import { WeightUnit } from '../units';
 import { reduce, StoreAction } from './reducer';
 import { completedIndexes, cycleProgress, previousBest, setDetails } from './selectors';
+import { buildWeeklyReport } from '../weeklyReport';
 
 const ctx = { now: new Date('2026-10-03T10:00:00.000Z') };
 const empty = (): AppDataV3 => ({
@@ -159,6 +160,80 @@ describe('resets and other actions', () => {
     expect('tag' in s2.currentCycle.slots.bench.sets[0]).toBe(false);
     const same = filled();
     expect(reduce(same, { type: 'setTag', slotId: 'bench', setIndex: 9, tag: 'easy' }, ctx)).toBe(same);
+  });
+
+  it('resets remove tags with the rest of the set data; a new week archives them', () => {
+    const tagged = run(filled(), { type: 'setTag', slotId: 'bench', setIndex: 0, tag: 'max' }, { type: 'setTag', slotId: 'rdl', setIndex: 0, tag: 'easy' });
+    expect(run(tagged, { type: 'resetDay', slotIds: ['bench'] }).currentCycle.slots.bench).toBeUndefined();
+    expect(run(tagged, { type: 'resetAll' }).currentCycle.slots).toEqual({});
+    const next = run(tagged, { type: 'startNewWeek', cycleId: 'current', newId: 'week-2' });
+    expect(next.archivedCycles[1].slots.bench.sets[0].tag).toBe('max');
+    expect(next.archivedCycles[1].slots.rdl.sets[0].tag).toBe('easy');
+    expect(next.currentCycle.slots).toEqual({});
+  });
+});
+
+describe('tags (how a ticked set felt)', () => {
+  const setTag = (slotId: string, setIndex: number, tag: 'easy' | 'good' | 'max' | null): StoreAction => ({ type: 'setTag', slotId, setIndex, tag });
+  const setOf = (s: AppDataV3, slotId: string, setIndex: number) => s.currentCycle.slots[slotId]?.sets[setIndex];
+
+  it('set, change and clear a tag on a ticked set', () => {
+    const s = run(empty(), weight('bench', 0, '60'), reps('bench', 0, '8'), tick('bench', 0));
+    expect(setOf(run(s, setTag('bench', 0, 'easy')), 'bench', 0)?.tag).toBe('easy');
+    expect(setOf(run(s, setTag('bench', 0, 'easy'), setTag('bench', 0, 'max')), 'bench', 0)?.tag).toBe('max');
+    const cleared = run(s, setTag('bench', 0, 'good'), setTag('bench', 0, null));
+    expect(setOf(cleared, 'bench', 0)).toEqual(setOf(s, 'bench', 0)); // exactly as before the tag
+  });
+
+  it('no tag on a set that is not ticked (typed only, or missing): nothing changes', () => {
+    const typed = run(empty(), weight('bench', 0, '60'));
+    expect(reduce(typed, setTag('bench', 0, 'max'), ctx)).toBe(typed);
+    expect(reduce(typed, setTag('bench', 1, 'max'), ctx)).toBe(typed);
+    expect(reduce(typed, setTag('squat', 0, 'max'), ctx)).toBe(typed);
+  });
+
+  it('the same tag again, or clearing no tag, changes nothing (no save)', () => {
+    const s = run(empty(), tick('bench', 0), setTag('bench', 0, 'good'));
+    expect(reduce(s, setTag('bench', 0, 'good'), ctx)).toBe(s);
+    const untagged = run(empty(), tick('bench', 0));
+    expect(reduce(untagged, setTag('bench', 0, null), ctx)).toBe(untagged);
+  });
+
+  it('untick clears the tag: typed values stay, a tick-only set disappears', () => {
+    const typed = run(empty(), weight('bench', 0, '60'), reps('bench', 0, '8'), tick('bench', 0), setTag('bench', 0, 'max'), tick('bench', 0));
+    expect(setOf(typed, 'bench', 0)).toEqual({ weight: '60', reps: '8', unit: 'kg', done: false, updatedAt: ctx.now.toISOString() });
+    const tickOnly = run(empty(), tick('bench', 0), setTag('bench', 0, 'max'), tick('bench', 0));
+    expect(tickOnly.currentCycle.slots.bench.sets).toEqual({});
+  });
+
+  it('ticking again starts with no tag, also when an older version left one on the unticked set', () => {
+    const s = run(empty(), weight('bench', 0, '60'), tick('bench', 0), setTag('bench', 0, 'max'), tick('bench', 0), tick('bench', 0));
+    expect(setOf(s, 'bench', 0)?.tag).toBeUndefined();
+    // v1.2.0 kept the tag when unticking: { done: false, tag: 'max' }
+    const old: AppDataV3 = {
+      ...empty(),
+      currentCycle: { id: 'c', startedAt: 't', slots: { bench: { slotId: 'bench', exerciseId: 'bench', performedExerciseId: 'bench', sets: { 0: { weight: '', reps: '', unit: 'kg', done: false, tag: 'max' } } } } },
+    };
+    expect(setOf(run(old, tick('bench', 0)), 'bench', 0)).toEqual({ weight: '', reps: '', unit: 'kg', done: true });
+    // and an edit of that unticked set drops it too
+    expect(setOf(run(old, reps('bench', 0, '8')), 'bench', 0)?.tag).toBeUndefined();
+  });
+
+  it('editing weight or reps of a ticked set keeps its tag', () => {
+    const s = run(empty(), weight('bench', 0, '60'), reps('bench', 0, '8'), tick('bench', 0), setTag('bench', 0, 'max'), weight('bench', 0, '62.5'), reps('bench', 0, '6', 'lbs'));
+    expect(setOf(s, 'bench', 0)).toMatchObject({ weight: '62.5', reps: '6', unit: 'kg', done: true, tag: 'max' });
+  });
+
+  it('tags never change bests, progress or the report numbers', () => {
+    const base = run(empty(), weight('incline-db-press', 0, '60'), reps('incline-db-press', 0, '8'), tick('incline-db-press', 0), tick('incline-db-press', 1));
+    const tagged = run(base, setTag('incline-db-press', 0, 'max'), setTag('incline-db-press', 1, 'easy'));
+    expect(tagged.bests).toBe(base.bests);
+    expect(cycleProgress(tagged, workoutProgram)).toEqual(cycleProgress(base, workoutProgram));
+    const strip = (r: ReturnType<typeof buildWeeklyReport>) => ({ ...r, days: r.days.map((d) => ({ ...d, exercises: d.exercises.map(({ maxSets: _m, ...e }) => e) })) });
+    for (const unit of ['kg', 'lbs'] as const) {
+      expect(strip(buildWeeklyReport(tagged.currentCycle, workoutProgram, unit))).toEqual(strip(buildWeeklyReport(base.currentCycle, workoutProgram, unit)));
+    }
+    expect(buildWeeklyReport(tagged.currentCycle, workoutProgram, 'kg').days[0].exercises[0].maxSets).toEqual([1]);
   });
 
   it('markReportShown adds the cycle id once', () => {
