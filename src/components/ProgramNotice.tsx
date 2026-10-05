@@ -56,7 +56,7 @@ export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiv
             <div className="bg-[#121215] border border-[#27272a] rounded-2xl p-5 max-w-sm w-full shadow-2xl relative">
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="absolute top-1.5 right-1.5 w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
+                className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
                 aria-label={t.cancel}
               >
                 <X className="w-4 h-4" />
@@ -77,7 +77,7 @@ export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiv
                     onResetActiveDay();
                     setShowConfirmModal(false);
                   }}
-                  className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  className="w-full min-h-11 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   {t.resetCurrentDayBtn}
                 </button>
@@ -86,13 +86,13 @@ export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiv
                     onResetAll();
                     setShowConfirmModal(false);
                   }}
-                  className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                  className="w-full min-h-11 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   {t.resetAllDaysBtn}
                 </button>
                 <button
                   onClick={() => setShowConfirmModal(false)}
-                  className="w-full py-1.5 text-xs text-zinc-400 hover:text-white font-medium"
+                  className="w-full min-h-11 py-1.5 text-xs text-zinc-400 hover:text-white font-medium cursor-pointer"
                 >
                   {t.cancel}
                 </button>

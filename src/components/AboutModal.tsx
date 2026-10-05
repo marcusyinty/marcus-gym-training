@@ -29,7 +29,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
         {/* Top Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-xl bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors z-10"
+          aria-label={t.close}
+          className="absolute top-2.5 right-2.5 w-11 h-11 flex items-center justify-center rounded-xl bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors z-10"
         >
           <X className="w-5 h-5" />
         </button>
@@ -136,7 +137,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
         {/* Bottom Close Action */}
         <button
           onClick={onClose}
-          className="w-full mt-3 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl transition-all shadow-md shadow-emerald-950/40 cursor-pointer shrink-0"
+          className="w-full mt-3 min-h-11 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl transition-all shadow-md shadow-emerald-950/40 cursor-pointer shrink-0"
         >
           {t.close}
         </button>

@@ -303,7 +303,8 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
         {/* Modal Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-xl bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors z-20"
+          aria-label={t.close}
+          className="absolute top-2 right-2.5 w-11 h-11 flex items-center justify-center rounded-xl bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors z-20"
         >
           <X className="w-5 h-5" />
         </button>
@@ -334,7 +335,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
           <button
             onClick={handleDownloadImage}
             disabled={isExporting}
-            className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`w-full min-h-11 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
               isSuccess
                 ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-950/50'
                 : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black shadow-lg shadow-emerald-950/40'
