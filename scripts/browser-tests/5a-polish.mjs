@@ -69,6 +69,12 @@ try {
     check(`${key}: About buttons all >= 44px`, small(await heights(p, FIXED)), []);
     const aboutText = await p.evaluate(`Math.min(...[...${FIXED}.querySelectorAll('[data-app-version], [data-log-version], .space-y-3 .font-mono, .space-y-3 .uppercase')].map((el) => parseFloat(getComputedStyle(el).fontSize)))`);
     check(`${key}: About version, dates and tags >= 11px`, aboutText >= 11, true);
+    // the close button's visible square stays 32px where it always was, so the (中文) title never runs under it
+    check(`${key}: About title never under the close button's visible square`, await p.evaluate(`(() => {
+      const box = ${FIXED}.firstElementChild; const sq = box.querySelector(':scope > button > span').getBoundingClientRect();
+      const range = document.createRange(); range.selectNodeContents(box.querySelector('h3'));
+      return [...range.getClientRects()].some((t) => t.right > sq.left && t.left < sq.right && t.bottom > sq.top && t.top < sq.bottom);
+    })()`), false);
     await shot(p, `${key}-about`);
     await p.evaluate(`${FIXED}.querySelector('button').click()`); await sleep(300);
     await p.evaluate(`document.querySelector('header button[title="View Weekly Report Card"]').click()`); await sleep(500);

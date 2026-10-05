@@ -27,12 +27,15 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
       <div className="relative w-full max-w-lg bg-[#121215] border border-[#27272a] rounded-2xl overflow-hidden shadow-2xl p-5 sm:p-6 max-h-[90vh] flex flex-col">
         {/* Top Close Button */}
+        {/* 44px tap area; the visible 32px square stays where it always was (the title never runs under it) */}
         <button
           onClick={onClose}
           aria-label={t.close}
-          className="absolute top-2.5 right-2.5 w-11 h-11 flex items-center justify-center rounded-xl bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors z-10"
+          className="group absolute top-2.5 right-2.5 w-11 h-11 flex items-center justify-center z-10 cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <span className="p-1.5 rounded-xl bg-zinc-800/80 text-zinc-400 group-hover:text-white group-hover:bg-zinc-700 transition-colors">
+            <X className="w-5 h-5" />
+          </span>
         </button>
 
         {/* Header Branding */}

@@ -304,9 +304,12 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
         <button
           onClick={onClose}
           aria-label={t.close}
-          className="absolute top-2 right-2.5 w-11 h-11 flex items-center justify-center rounded-xl bg-zinc-800/80 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors z-20"
+          className="group absolute top-2 right-2.5 w-11 h-11 flex items-center justify-center z-20 cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          {/* 44px tap area; the visible 32px square looks as before */}
+          <span className="p-1.5 rounded-xl bg-zinc-800/80 text-zinc-400 group-hover:text-white group-hover:bg-zinc-700 transition-colors">
+            <X className="w-5 h-5" />
+          </span>
         </button>
 
         {/* Scrollable Container */}
