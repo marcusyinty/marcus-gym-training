@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { uiTranslations } from '../data/translations';
-import { reportDayHeading, topSetText, weekCaption } from './reportText';
+import { reportDayHeading, setResultText, topSetText, weekCaption } from './reportText';
 
 const en = uiTranslations.en;
 const zh = uiTranslations.zh;
@@ -28,6 +28,24 @@ describe('weekly report words, EN and 中文', () => {
   it('day tabs: "Day 1" / "6 Ex" in English (unchanged), "第 1 天" / "6 项" in 中文', () => {
     expect([en.dayPill(1), en.exerciseCountShort(6)]).toEqual(['Day 1', '6 Ex']);
     expect([zh.dayPill(1), zh.exerciseCountShort(6)]).toEqual(['第 1 天', '6 项']);
+  });
+
+  it('step 4 words: one set, last time, Max in the report, tag names and meanings', () => {
+    expect([setResultText('60', '8', 'kg', en), setResultText('132.3', '', 'lbs', en), setResultText('', '12', 'kg', zh), setResultText('', '', 'kg', en), setResultText('', '', 'kg', zh)]).toEqual([
+      '60 kg × 8', '132.3 lbs', '自重 × 12', 'done', '已完成',
+    ]);
+    expect([en.lastTimeLine('28 Sept', '60 kg × 8'), en.lastTimeLine(null, '60 kg × 8')]).toEqual(['Last (28 Sept): 60 kg × 8', 'Last: 60 kg × 8']);
+    expect([zh.lastTimeLine('9月28日', '60 kg × 8'), zh.lastTimeLine(null, '60 kg × 8')]).toEqual(['上次（9月28日）：60 kg × 8', '上次：60 kg × 8']);
+    expect([en.reportMaxOnSets([2]), en.reportMaxOnSets([1, 3])]).toEqual(['Max on set 2', 'Max on sets 1, 3']);
+    expect([zh.reportMaxOnSets([2]), zh.reportMaxOnSets([1, 3])]).toEqual(['第 2 组到达极限', '第 1、3 组到达极限']);
+    expect([en.tagNames, zh.tagNames]).toEqual([{ easy: 'Easy', good: 'Good', max: 'Max' }, { easy: '轻松', good: '刚好', max: '极限' }]);
+    expect(en.tagHelp).toEqual({
+      easy: 'I could have done 3 or more extra reps',
+      good: 'I had 1 to 2 reps left',
+      max: 'I was at my limit, I could not do another rep / had to stop',
+    });
+    // the 中文 best-set badge no longer uses 上次 ("last time"), which the last-time lines use
+    expect([en.prevBest('60', 'kg', '8'), zh.prevBest('60', 'kg', '8')]).toEqual(['Prev: 60 kg × 8', '最佳: 60 kg × 8次']);
   });
 
   it('week captions', () => {

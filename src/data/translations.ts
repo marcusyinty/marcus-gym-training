@@ -167,6 +167,7 @@ export interface UiTranslations {
   setDoneTaggedLabel: (setNum: number, tag: string) => string;
   setResultTicked: string;
   lastTimeLine: (date: string | null, result: string) => string;
+  reportMaxOnSets: (setNumbers: number[]) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -347,6 +348,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setDoneTaggedLabel: (setNum, tag) => `Set ${setNum} done, ${tag}`,
     setResultTicked: 'done',
     lastTimeLine: (date, result) => (date ? `Last (${date}): ${result}` : `Last: ${result}`),
+    reportMaxOnSets: (setNumbers) => `Max on ${setNumbers.length === 1 ? 'set' : 'sets'} ${setNumbers.join(', ')}`,
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -520,6 +522,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setDoneTaggedLabel: (setNum, tag) => `第 ${setNum} 组 已完成，${tag}`,
     setResultTicked: '已完成',
     lastTimeLine: (date, result) => (date ? `上次（${date}）：${result}` : `上次：${result}`),
+    reportMaxOnSets: (setNumbers) => `第 ${setNumbers.join('、')} 组到达极限`,
   },
 };
 

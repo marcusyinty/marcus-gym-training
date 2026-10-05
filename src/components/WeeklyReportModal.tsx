@@ -11,7 +11,7 @@ import { StartNewWeek, StartNewWeekAvailability } from './StartNewWeek';
 import { buildWeeklyReport, WeeklyReport } from '../lib/weeklyReport';
 import { localDateStamp } from '../lib/weeks';
 import { reportDayHeading, topSetText, weekCaption } from '../lib/reportText';
-import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale } from 'lucide-react';
+import { X, Dumbbell, Download, Sparkles, CheckCircle2, ShieldCheck, Flame, Scale, Flag } from 'lucide-react';
 
 interface WeeklyReportModalProps {
   isOpen: boolean;
@@ -40,7 +40,8 @@ const waitForExportCopy = async (ref: React.RefObject<HTMLDivElement | null>): P
 interface DaySummary {
   dayId: string;
   heading: string; // "Day 1: Upper A" / "第一天：上肢 A"
-  exercises: { id: string; name: string; topText: string; ticked: boolean }[];
+  // maxText: "Max on set 2" when ticked sets were tagged Max, else null (then the row is exactly as before)
+  exercises: { id: string; name: string; topText: string; ticked: boolean; maxText: string | null }[];
 }
 
 interface ReportCardProps {
@@ -165,20 +166,36 @@ const ReportCard: React.FC<ReportCardProps> = ({ cardRef, t, caption, report, pr
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-              {day.exercises.map((ex) => (
-                <div key={ex.id} className="flex items-center justify-between py-0.5 border-b border-zinc-900/60">
-                  <span className="text-zinc-300 font-medium truncate max-w-[170px]" title={ex.name}>
-                    {ex.name}
-                  </span>
-                  <span
-                    className={`font-mono font-bold shrink-0 text-[10px] px-1.5 py-0.5 rounded border ${
-                      ex.ticked ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 border-transparent'
-                    }`}
-                  >
-                    {ex.topText}
-                  </span>
-                </div>
-              ))}
+              {day.exercises.map((ex) => {
+                const nameAndTop = (
+                  <>
+                    <span className="text-zinc-300 font-medium truncate max-w-[170px]" title={ex.name}>
+                      {ex.name}
+                    </span>
+                    <span
+                      className={`font-mono font-bold shrink-0 text-[10px] px-1.5 py-0.5 rounded border ${
+                        ex.ticked ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' : 'text-zinc-500 border-transparent'
+                      }`}
+                    >
+                      {ex.topText}
+                    </span>
+                  </>
+                );
+                // Only an exercise with Max-tagged sets gets the extra line; every other row stays as it was
+                return ex.maxText ? (
+                  <div key={ex.id} className="py-0.5 border-b border-zinc-900/60">
+                    <div className="flex items-center justify-between">{nameAndTop}</div>
+                    <p data-report-max className="mt-0.5 flex items-center gap-1 text-[10px] leading-3 font-semibold text-amber-300">
+                      <Flag aria-hidden="true" className="w-3 h-3 shrink-0" />
+                      {ex.maxText}
+                    </p>
+                  </div>
+                ) : (
+                  <div key={ex.id} className="flex items-center justify-between py-0.5 border-b border-zinc-900/60">
+                    {nameAndTop}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -227,8 +244,14 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, la
       heading: reportDayHeading(day.dayNumber, lang === 'zh' && zhDay ? zhDay.title : day.title, lang, t),
       exercises: day.exercises.map((ex, exerciseIndex) => {
         // The name of the exercise actually done that week (a swapped-in alternative shows its own name)
-        const { top, performedExerciseId } = report.days[dayIndex].exercises[exerciseIndex];
-        return { id: ex.id, name: performedExerciseName(ex, performedExerciseId, lang), topText: topSetText(top, weightUnit, t), ticked: top.kind !== 'none' };
+        const { top, performedExerciseId, maxSets } = report.days[dayIndex].exercises[exerciseIndex];
+        return {
+          id: ex.id,
+          name: performedExerciseName(ex, performedExerciseId, lang),
+          topText: topSetText(top, weightUnit, t),
+          ticked: top.kind !== 'none',
+          maxText: maxSets.length > 0 ? t.reportMaxOnSets(maxSets) : null,
+        };
       }),
     };
   });
