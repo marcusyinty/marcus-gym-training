@@ -1,0 +1,6 @@
+{
+  "language_preference": "zh",
+  "aesthetic_recomp_completed_sets_v2": "{\"incline-db-press\":[0,1],\"lat-pulldown\":[0],\"leg-press\":[0]}",
+  "aesthetic_recomp_set_details_v2": "{\"incline-db-press\":{\"0\":{\"setNumber\":1,\"weight\":\"60\",\"reps\":\"8\",\"unit\":\"kg\",\"completed\":true,\"timestamp\":\"2026-10-02T15:09:36.888Z\"},\"1\":{\"setNumber\":2,\"weight\":\"62.5\",\"reps\":\"6\",\"unit\":\"kg\",\"completed\":true,\"timestamp\":\"2026-10-02T15:09:37.185Z\"}},\"lat-pulldown\":{\"0\":{\"setNumber\":1,\"weight\":\"135\",\"reps\":\"10\",\"unit\":\"lbs\",\"completed\":true,\"timestamp\":\"2026-10-02T15:09:37.494Z\"}},\"leg-press\":{\"0\":{\"setNumber\":1,\"weight\":\"100\",\"reps\":\"5\",\"unit\":\"kg\",\"completed\":true,\"timestamp\":\"2026-10-02T15:09:38.255Z\"}}}",
+  "aesthetic_recomp_previous_bests_v2": "{\"incline-db-press\":{\"weight\":\"62.5\",\"reps\":\"6\",\"unit\":\"kg\"},\"lat-pulldown\":{\"weight\":\"135\",\"reps\":\"10\",\"unit\":\"lbs\"},\"leg-press\":{\"weight\":\"100\",\"reps\":\"5\",\"unit\":\"kg\"}}"
+}
