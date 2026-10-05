@@ -6,7 +6,9 @@ import { displayWeight, WeightUnit } from '../lib/units';
 import { parseSetsCount } from '../utils/parseSetsCount';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { SetTag } from '../lib/store/reducer';
-import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, ArrowLeftRight, PencilLine, Tag } from 'lucide-react';
+import type { LastTimeSet } from '../lib/lastTime';
+import { setResultText } from '../lib/reportText';
+import { Play, Pause, Maximize2, Check, Sparkles, VolumeX, Target, Activity, Video, Award, ChevronDown, ChevronUp, ArrowLeftRight, PencilLine, Tag, Flag } from 'lucide-react';
 
 interface ExerciseCardProps {
   // The exercise done in this slot this week: the program's, or a swapped-in alternative (see performedExercise)
@@ -28,6 +30,9 @@ interface ExerciseCardProps {
   remark?: { text: string; onEdit: () => void };
   // How each ticked set felt (shown in its tick button) and opening the tag sheet
   tags?: { bySet: Record<number, SetTag>; onOpen: () => void };
+  // The sets ticked the last past week this exercise was done (weights already in weightUnit), and that
+  // day as short text (null if unreadable). Undefined when there is no history: nothing is shown.
+  lastTime?: { date: string | null; sets: Record<number, LastTimeSet> };
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -46,6 +51,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   swap,
   remark,
   tags,
+  lastTime,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -175,6 +181,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       )}
     </div>
   ) : null;
+
+  // The date is written once per card: on the first set row that has a "last time" line
+  const firstLastTimeIndex = Array.from({ length: totalSets }, (_, i) => i).find((i) => lastTime?.sets[i] !== undefined);
 
   const prevBestText =
     previousBest && (previousBest.weight || previousBest.reps)
@@ -493,14 +502,15 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 const detail = setDetails[sIdx] || { weight: '', reps: '', unit: weightUnit };
                 const setNumber = sIdx + 1;
                 const tag = isCompleted ? tags?.bySet[sIdx] : undefined;
+                const last = lastTime?.sets[sIdx];
 
                 return (
                   <div
                     key={sIdx}
                     data-set-row
-                    className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg border transition-colors ${
-                      isCompleted ? 'bg-emerald-500/15 border-emerald-500' : 'bg-[#121215] border-[#222227]'
-                    }`}
+                    className={`flex items-center px-1.5 rounded-lg border transition-colors ${
+                      last ? 'flex-wrap gap-x-1.5 gap-y-0 py-0.5' : 'gap-1.5 py-1'
+                    } ${isCompleted ? 'bg-emerald-500/15 border-emerald-500' : 'bg-[#121215] border-[#222227]'}`}
                   >
                     {/* Set number ("Set 1" for screen readers) */}
                     <span
@@ -568,6 +578,24 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       <Check className={`${tag ? 'w-5 h-5' : 'w-6 h-6'} ${isCompleted ? 'stroke-[3]' : ''}`} />
                       {tag && <span className="mt-px text-[10px] leading-3 font-extrabold uppercase">{t.tagNames[tag]}</span>}
                     </button>
+
+                    {/* What this set was last time (only sets ticked then), under the inputs; Max gets a calm flag */}
+                    {last && (
+                      <div data-last-time className="basis-full min-w-0 h-3 pl-[30px] flex items-center gap-1 text-[11px] leading-3 text-zinc-400">
+                        <span className="min-w-0 truncate">
+                          {t.lastTimeLine(sIdx === firstLastTimeIndex ? lastTime?.date ?? null : null, setResultText(last.weight, last.reps, weightUnit, t))}
+                        </span>
+                        {last.tag === 'max' ? (
+                          <span data-last-time-max className="shrink-0 flex items-center gap-0.5 font-bold text-amber-300">
+                            <span aria-hidden="true" className="text-zinc-500 font-normal">·</span>
+                            <Flag aria-hidden="true" className="w-3 h-3" />
+                            {t.tagNames.max}
+                          </span>
+                        ) : (
+                          last.tag && <span className="shrink-0">· {t.tagNames[last.tag]}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

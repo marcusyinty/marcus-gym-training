@@ -27,7 +27,8 @@ import { addRestTime, RestCountdown, restSecondsForReps, startRestCountdown } fr
 import { unlockRestSound } from './lib/restAlert';
 import { completedIndexes, cycleProgress, previousBest, remarkForSlot, setDetails, setTags, tickedSetCount } from './lib/store/selectors';
 import { shouldAutoOpenReport } from './lib/store/reportAutoOpen';
-import { currentWeekNumber } from './lib/weeks';
+import { currentWeekNumber, formatShortDay } from './lib/weeks';
+import { lastTimeFor } from './lib/lastTime';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { Trophy, Sparkles, Flame, ChevronDown, AlertTriangle, RefreshCw, X } from 'lucide-react';
 
@@ -226,6 +227,12 @@ export const App: React.FC = () => {
       if (!result.ok) setTabNotice('weekStartedElsewhere');
     }
     return result;
+  };
+
+  // "Last time" for a slot: the newest past week its exercise was done, weights in the current unit
+  const lastTimeOf = (slotId: string) => {
+    const found = lastTimeFor(appData, slotId, weightUnit);
+    return found ? { date: formatShortDay(found.date, lang), sets: found.sets } : undefined;
   };
 
   // Tags: the sheet for one slot of the active day, and the prompt for the newest ticked set (any day)
@@ -453,6 +460,7 @@ export const App: React.FC = () => {
               exercise={performedExercise(exercise, performedExerciseIdIn(appData.currentCycle, exercise.id))}
               remark={{ text: remarkForSlot(appData, exercise.id), onEdit: () => setRemarkSlotId(exercise.id) }}
               tags={{ bySet: setTags(appData, exercise.id), onOpen: () => setTagSlotId(exercise.id) }}
+              lastTime={lastTimeOf(exercise.id)}
               swap={
                 alternativesForSlot(exercise.id).length > 0
                   ? { isSwapped: performedExerciseIdIn(appData.currentCycle, exercise.id) !== exerciseIdForSlotId(exercise.id), onOpen: () => setSwapSlotId(exercise.id) }
@@ -613,6 +621,7 @@ export const App: React.FC = () => {
           completedSetIndexes={completedIndexes(appData, tagSlot.id)}
           setDetails={setDetails(appData, tagSlot.id)}
           tags={setTags(appData, tagSlot.id)}
+          lastTime={lastTimeOf(tagSlot.id)}
           weightUnit={weightUnit}
           onSetTag={(setIndex, tag) => handleSetTag(tagSlot.id, setIndex, tag)}
           onClose={() => setTagSlotId(null)}
