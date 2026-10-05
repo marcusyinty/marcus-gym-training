@@ -169,6 +169,44 @@ export interface UiTranslations {
   setResultTicked: string;
   lastTimeLine: (date: string | null, result: string) => string;
   reportMaxOnSets: (setNumbers: number[]) => string;
+  bodyTitle: string;
+  bodyButtonLabel: string;
+  bodyButton: (n: number) => string;
+  bodyPrivate: string;
+  bodyAddEntry: string;
+  bodyEditEntry: string;
+  bodyDate: string;
+  bodyWeight: string;
+  bodyWaist: string;
+  bodyHips: string;
+  bodyOptional: string;
+  bodySave: string;
+  bodySaved: string;
+  bodyDeleted: string;
+  bodyReplaceQuestion: (day: string) => string;
+  bodyReplaceHas: (values: string) => string;
+  bodyReplace: string;
+  bodyDeleteQuestion: (day: string) => string;
+  bodyDelete: string;
+  bodyEditLabel: (day: string) => string;
+  bodyDeleteLabel: (day: string) => string;
+  bodyEntries: (n: number) => string;
+  bodyNoEntries: string;
+  bodyShowMore: (n: number) => string;
+  bodyHeight: string;
+  bodyHeightNotSet: string;
+  bodyEdit: string;
+  bodyRemove: string;
+  bodyWaistShort: (value: string) => string;
+  bodyHipsShort: (value: string) => string;
+  bodyProblem: {
+    badDay: string;
+    future: string;
+    required: string;
+    notNumber: string;
+    outOfRange: (field: 'weight' | 'waist' | 'hips' | 'height', low: string, high: string, unit: string) => string;
+  };
+  bodyAtCap: string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -351,6 +389,44 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setResultTicked: 'done',
     lastTimeLine: (date, result) => (date ? `Last (${date}): ${result}` : `Last: ${result}`),
     reportMaxOnSets: (setNumbers) => `Max on ${setNumbers.length === 1 ? 'set' : 'sets'} ${setNumbers.join(', ')}`,
+    bodyTitle: 'Body',
+    bodyButtonLabel: 'Body measurements',
+    bodyButton: (n) => `Body (${n})`,
+    bodyPrivate: 'Saved only on this phone. Nothing is sent anywhere.',
+    bodyAddEntry: 'Add entry',
+    bodyEditEntry: 'Edit entry',
+    bodyDate: 'Date',
+    bodyWeight: 'Weight',
+    bodyWaist: 'Waist',
+    bodyHips: 'Hips',
+    bodyOptional: 'optional',
+    bodySave: 'Save entry',
+    bodySaved: 'Saved.',
+    bodyDeleted: 'Deleted.',
+    bodyReplaceQuestion: (day) => `Replace the entry for ${day}?`,
+    bodyReplaceHas: (values) => `It has ${values}.`,
+    bodyReplace: 'Replace',
+    bodyDeleteQuestion: (day) => `Delete the entry for ${day}?`,
+    bodyDelete: 'Delete',
+    bodyEditLabel: (day) => `Edit the entry for ${day}`,
+    bodyDeleteLabel: (day) => `Delete the entry for ${day}`,
+    bodyEntries: (n) => `Entries (${n})`,
+    bodyNoEntries: 'No entries yet. Add your first one above.',
+    bodyShowMore: (n) => `Show ${n} more`,
+    bodyHeight: 'Height',
+    bodyHeightNotSet: 'Not set',
+    bodyEdit: 'Edit',
+    bodyRemove: 'Remove',
+    bodyWaistShort: (value) => `waist ${value}`,
+    bodyHipsShort: (value) => `hips ${value}`,
+    bodyProblem: {
+      badDay: 'Choose a valid date.',
+      future: "The date can't be in the future.",
+      required: 'Enter your weight.',
+      notNumber: 'Use numbers only, e.g. 72.4 or 72,4.',
+      outOfRange: (field, low, high, unit) => `${{ weight: 'Weight', waist: 'Waist', hips: 'Hips', height: 'Height' }[field]} must be between ${low} and ${high} ${unit}.`,
+    },
+    bodyAtCap: 'You have 2,000 entries, the most this app keeps. Delete old entries to add new ones.',
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -526,6 +602,44 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     setResultTicked: '已完成',
     lastTimeLine: (date, result) => (date ? `上次（${date}）：${result}` : `上次：${result}`),
     reportMaxOnSets: (setNumbers) => `第 ${setNumbers.join('、')} 组到达极限`,
+    bodyTitle: '身体数据',
+    bodyButtonLabel: '身体数据',
+    bodyButton: (n) => `身体数据（${n}）`,
+    bodyPrivate: '仅保存在这台手机上，不会发送到任何地方。',
+    bodyAddEntry: '添加记录',
+    bodyEditEntry: '编辑记录',
+    bodyDate: '日期',
+    bodyWeight: '体重',
+    bodyWaist: '腰围',
+    bodyHips: '臀围',
+    bodyOptional: '可选',
+    bodySave: '保存记录',
+    bodySaved: '已保存。',
+    bodyDeleted: '已删除。',
+    bodyReplaceQuestion: (day) => `替换 ${day} 的记录？`,
+    bodyReplaceHas: (values) => `该记录为：${values}。`,
+    bodyReplace: '替换',
+    bodyDeleteQuestion: (day) => `删除 ${day} 的记录？`,
+    bodyDelete: '删除',
+    bodyEditLabel: (day) => `编辑 ${day} 的记录`,
+    bodyDeleteLabel: (day) => `删除 ${day} 的记录`,
+    bodyEntries: (n) => `记录（${n}）`,
+    bodyNoEntries: '还没有记录。请在上方添加第一条。',
+    bodyShowMore: (n) => `再显示 ${n} 条`,
+    bodyHeight: '身高',
+    bodyHeightNotSet: '未填写',
+    bodyEdit: '编辑',
+    bodyRemove: '移除',
+    bodyWaistShort: (value) => `腰围 ${value}`,
+    bodyHipsShort: (value) => `臀围 ${value}`,
+    bodyProblem: {
+      badDay: '请选择有效的日期。',
+      future: '日期不能晚于今天。',
+      required: '请输入体重。',
+      notNumber: '只能输入数字，例如 72.4 或 72,4。',
+      outOfRange: (field, low, high, unit) => `${{ weight: '体重', waist: '腰围', hips: '臀围', height: '身高' }[field]}须在 ${low} 到 ${high} ${unit} 之间。`,
+    },
+    bodyAtCap: '已有 2,000 条记录，已达上限。请删除旧记录后再添加。',
   },
 };
 

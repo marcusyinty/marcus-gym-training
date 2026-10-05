@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Language, uiTranslations } from '../data/translations';
-import { ShieldCheck, RotateCcw, AlertTriangle, X, ChevronDown } from 'lucide-react';
+import { ShieldCheck, RotateCcw, AlertTriangle, X, ChevronDown, Ruler } from 'lucide-react';
 
 interface ProgramNoticeProps {
   lang: Language;
   onResetActiveDay: () => void;
   onResetAll: () => void;
+  onOpenBody: () => void;
 }
 
 // Beginner form notice + Reset button. Shown once at the top of the page content (it scrolls away),
 // not in the sticky header. The notice is clamped to 2 lines; tapping it shows the full text.
-export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiveDay, onResetAll }) => {
+export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiveDay, onResetAll, onOpenBody }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const t = uiTranslations[lang];
@@ -31,6 +32,22 @@ export const ProgramNotice: React.FC<ProgramNoticeProps> = ({ lang, onResetActiv
           {t.beginnerStandardText}
         </span>
         <ChevronDown className={`w-4 h-4 shrink-0 text-zinc-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Body measurements: looks like the Reset button (40px), 44px tap area, adds no height to the row */}
+      <button
+        type="button"
+        onClick={onOpenBody}
+        aria-label={t.bodyButtonLabel}
+        title={t.bodyButtonLabel}
+        aria-haspopup="dialog"
+        data-body-open
+        className="group -my-0.5 h-11 min-w-11 shrink-0 flex items-center justify-center cursor-pointer"
+      >
+        <span className="h-10 min-w-10 px-2.5 flex items-center justify-center gap-1 text-xs font-bold text-zinc-400 group-hover:text-white bg-zinc-800/80 group-hover:bg-zinc-700 rounded-lg border border-zinc-700 transition-all">
+          <Ruler className="w-4 h-4" />
+          <span className="hidden sm:inline">{t.bodyTitle}</span>
+        </span>
       </button>
 
       {/* Reset Day Button */}

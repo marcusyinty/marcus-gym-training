@@ -46,6 +46,10 @@ export type SwapResult =
 export interface BodyEntryRequest extends BodyEntryInput {
   previousDay?: string;
   expected?: BodyEntry;
+  // Editing: the entry as it was, and the fields left untouched. Those keep their stored value and unit
+  // exactly (the form shows them converted to the current unit; saving the converted text would drift).
+  original?: BodyEntry;
+  unchanged?: ('weight' | 'waist' | 'hips')[];
 }
 // exists: `day` already has an entry (the newest values are in `existing`): ask "Replace?" first
 // atCap: 2000 entries already; invalid: see `problems` (nothing saved)
@@ -303,7 +307,13 @@ export const createAppDataStore = ({ storage, now, makeId, delay = 300 }: AppDat
       const moving = request.previousDay !== undefined && request.previousDay !== checked.day && has(request.previousDay);
       const count = Object.keys(entries).length + (atDay ? 0 : 1) - (moving ? 1 : 0);
       if (count > MAX_BODY_ENTRIES) return { ok: false, reason: 'atCap', updatedFromOtherTab };
-      const next = reduce(state, { type: 'saveBodyEntry', day: checked.day, entry: checked.entry, previousDay: moving ? request.previousDay : undefined }, { now: now() });
+      const entry = { ...checked.entry };
+      for (const field of request.unchanged ?? []) {
+        const kept = request.original?.[field];
+        if (kept && field === 'weight') entry.weight = kept as BodyEntry['weight'];
+        else if (kept && field !== 'weight') entry[field] = kept as NonNullable<BodyEntry['waist']>;
+      }
+      const next = reduce(state, { type: 'saveBodyEntry', day: checked.day, entry, previousDay: moving ? request.previousDay : undefined }, { now: now() });
       if (!writeNow(next)) return { ok: false, reason: 'saveFailed', updatedFromOtherTab };
       return { ok: true, updatedFromOtherTab };
     },

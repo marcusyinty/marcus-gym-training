@@ -10,6 +10,7 @@ import { ProgramNotice } from './components/ProgramNotice';
 import { RestTimerBar } from './components/RestTimerBar';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { HistoryModal } from './components/HistoryModal';
+import { BodyModal } from './components/BodyModal';
 import { SwapSheet } from './components/SwapSheet';
 import { alternativesForSlot, performedExercise, performedExerciseIdIn, performedExerciseName } from './lib/exerciseVariants';
 import { exerciseIdForSlotId } from './lib/exerciseIds';
@@ -40,7 +41,7 @@ export const App: React.FC = () => {
   const [weightUnit, setWeightUnit] = usePersistentState(weightUnitItem);
   const [restSound, setRestSound] = usePersistentState(restSoundItem);
   // Workout data: one AppDataV3 object saved under the v3 key. The old v2 keys are only read once, to migrate.
-  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek, swapExercise, setRemark } = useAppData();
+  const { data: appData, savingDisabled, replacedCount, droppedChangeCount, dispatch, restore, startNewWeek, swapExercise, setRemark, saveBodyEntry, deleteBodyEntry, setHeight } = useAppData();
   // A short notice when another tab's newer save replaced something here (see appDataStore)
   // droppedChange: an unsaved change here lost; weekStartedElsewhere: Start new week happened there first;
   // updated: a swap or note found newer data from another tab (shown now)
@@ -59,6 +60,8 @@ export const App: React.FC = () => {
   const [activeDayId, setActiveDayId] = useState<string>('day-1');
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+  // Body measurements (opened from the notice row or About → Your data)
+  const [isBodyOpen, setIsBodyOpen] = useState<boolean>(false);
   // The archived week whose report is open (index in archivedCycles), or null
   const [pastWeekIndex, setPastWeekIndex] = useState<number | null>(null);
   const [isWeeklyReportOpen, setIsWeeklyReportOpen] = useState<boolean>(false);
@@ -345,7 +348,7 @@ export const App: React.FC = () => {
         )}
 
         {/* Beginner notice + Reset (scrolls away with the page) */}
-        <ProgramNotice lang={lang} onResetActiveDay={handleResetActiveDay} onResetAll={handleResetAll} />
+        <ProgramNotice lang={lang} onResetActiveDay={handleResetActiveDay} onResetAll={handleResetAll} onOpenBody={() => setIsBodyOpen(true)} />
 
         {/* Active Day Header */}
         {isWide ? (
@@ -575,10 +578,27 @@ export const App: React.FC = () => {
         data={appData}
         savingDisabled={savingDisabled}
         onRestore={restore}
+        onOpenBody={() => {
+          setIsAboutOpen(false);
+          setIsBodyOpen(true);
+        }}
         onOpenHistory={() => {
           setIsAboutOpen(false);
           setIsHistoryOpen(true);
         }}
+      />
+
+      {/* Body measurements: saved right away on the newest data (newer data from another tab: the notice) */}
+      <BodyModal
+        isOpen={isBodyOpen}
+        lang={lang}
+        data={appData}
+        weightUnit={weightUnit}
+        onSaveEntry={saveBodyEntry}
+        onDeleteEntry={deleteBodyEntry}
+        onSetHeight={(text) => setHeight(text, weightUnit)}
+        onUpdatedFromOtherTab={() => setTabNotice('updated')}
+        onClose={() => setIsBodyOpen(false)}
       />
 
       {/* Past weeks (opened from About → Your data) */}

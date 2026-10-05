@@ -93,6 +93,16 @@ describe('saving body measurements', () => {
     expect('body' in stored(storage)).toBe(false);
   });
 
+  it('editing with the app in the other unit: fields left untouched keep their stored value and unit exactly', () => {
+    const storage = new MemoryStorage({ [STORAGE_KEY_V3]: JSON.stringify(week()) });
+    const store = createAppDataStore(options(storage));
+    store.saveBodyEntry(input('2026-10-06', '72.4', { waist: '80' }));
+    const original = stored(storage).body!.entries['2026-10-06'];
+    // the form shows 159.6 lbs and 31.5 in; only the waist is changed, to 32 in
+    expect(store.saveBodyEntry({ day: '2026-10-06', weight: '159.6', waist: '32', hips: '', unit: 'lbs', previousDay: '2026-10-06', expected: original, original, unchanged: ['weight'] }).ok).toBe(true);
+    expect(stored(storage).body!.entries['2026-10-06']).toMatchObject({ weight: { value: '72.4', unit: 'kg' }, waist: { value: '32', unit: 'in' } });
+  });
+
   it('height: saved, replaced, removed with empty text; bad text refused', () => {
     const storage = new MemoryStorage({ [STORAGE_KEY_V3]: JSON.stringify(week()) });
     const store = createAppDataStore(options(storage));
