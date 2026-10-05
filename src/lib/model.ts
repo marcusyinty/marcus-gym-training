@@ -1,6 +1,7 @@
 // Version 3 of the saved workout data (the aesthetic_recomp_v3 key).
 // Language and weight unit are NOT part of it; they keep their own saved keys.
 import { WeightUnit } from './units';
+import type { BodyData } from './body';
 
 // One set of one exercise. Weight stays text plus its unit, exactly like the v2 format.
 export interface LoggedSet {
@@ -44,4 +45,7 @@ export interface AppDataV3 {
   // A permanent note per exercise id actually done (not weekly data). Optional: data saved before remarks
   // existed has no such field, and it is only written once a remark exists.
   remarks?: Record<string, string>;
+  // Body measurements (see body.ts). Optional: only written once an entry or a height is saved, and removed
+  // again when everything is deleted. Not weekly data.
+  body?: BodyData;
 }

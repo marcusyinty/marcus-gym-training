@@ -14,6 +14,8 @@ import { reduce, StoreAction } from './reducer';
 import { remarkFor, tickedSetCount } from './selectors';
 import { knownExerciseIds } from '../exerciseVariants';
 import { checkSwap, SwapBlockReason, SwapRequest } from './swap';
+import { BodyEntry, BodyEntryInput, BodyProblem, checkBodyEntryInput, checkBodyValue, lengthUnitFor, MAX_BODY_ENTRIES, sameEntryValues } from '../body';
+import { WeightUnit } from '../units';
 
 export interface AppDataStoreOptions {
   storage: KeyedStorage | null;
@@ -38,6 +40,24 @@ export type SwapResult =
   | { ok: true; clearedTypedValues: boolean; updatedFromOtherTab: boolean }
   | { ok: false; reason: SwapBlockReason | 'savingOff' | 'saveFailed'; updatedFromOtherTab: boolean };
 
+// A body entry to save. previousDay: the day of the entry being edited (moving it when the day changes).
+// expected: what the person saw at `day` and agreed to replace (or was editing); if the newest saved data
+// there differs (another tab changed it), nothing is saved and the newest values come back to ask again.
+export interface BodyEntryRequest extends BodyEntryInput {
+  previousDay?: string;
+  expected?: BodyEntry;
+}
+// exists: `day` already has an entry (the newest values are in `existing`): ask "Replace?" first
+// atCap: 2000 entries already; invalid: see `problems` (nothing saved)
+export type BodyResult =
+  | { ok: true; updatedFromOtherTab: boolean }
+  | { ok: false; reason: 'exists'; existing: BodyEntry; updatedFromOtherTab: boolean }
+  | { ok: false; reason: 'invalid'; problems: BodyProblem[]; updatedFromOtherTab: boolean }
+  | { ok: false; reason: 'atCap' | 'savingOff' | 'saveFailed'; updatedFromOtherTab: boolean };
+export type HeightResult =
+  | { ok: true; updatedFromOtherTab: boolean }
+  | { ok: false; reason: 'notNumber' | 'outOfRange' | 'savingOff' | 'saveFailed'; updatedFromOtherTab: boolean };
+
 export interface AppDataStore {
   readonly source: LoadSource;
   getState: () => AppDataV3;
@@ -61,6 +81,11 @@ export interface AppDataStore {
   swapExercise: (request: SwapRequest) => SwapResult;
   // Saves (or, with empty text, deletes) the remark of an exercise id right away
   setRemark: (exerciseId: string, text: string) => RemarkResult;
+  // Body measurements, each saved right away on the newest data (see BodyEntryRequest)
+  saveBodyEntry: (request: BodyEntryRequest) => BodyResult;
+  deleteBodyEntry: (day: string) => { ok: boolean; reason?: 'savingOff' | 'saveFailed'; updatedFromOtherTab: boolean };
+  // text '' removes the height; unit: the app's weight unit (cm with kg, inches with lbs)
+  setHeight: (text: string, unit: WeightUnit) => HeightResult;
   // Replaces everything with a backup's data (already checked with validateV3) and saves it right away
   restore: (data: AppDataV3) => RestoreResult;
   flush: () => void;
@@ -258,6 +283,49 @@ export const createAppDataStore = ({ storage, now, makeId, delay = 300 }: AppDat
       const next = reduce(state, { type: 'swapExercise', ...request }, { now: now() });
       if (!writeNow(next)) return { ok: false, reason: 'saveFailed', updatedFromOtherTab };
       return { ok: true, clearedTypedValues: check.clearsTypedValues, updatedFromOtherTab };
+    },
+    saveBodyEntry(request) {
+      if (!canSave || !storage) return { ok: false, reason: 'savingOff', updatedFromOtherTab: false };
+      const checked = checkBodyEntryInput(request, now());
+      if (!checked.ok) return { ok: false, reason: 'invalid', problems: checked.problems, updatedFromOtherTab: false };
+      // Another tab may have saved meanwhile (maybe for the same day): decide on the newest data
+      const updatedFromOtherTab = catchUp();
+      const entries = state.body?.entries ?? {};
+      const has = (day: string) => Object.prototype.hasOwnProperty.call(entries, day);
+      const atDay = has(checked.day) ? entries[checked.day] : undefined;
+      if (atDay) {
+        const editingThisDay = request.previousDay === checked.day;
+        // Never overwritten without the person having seen exactly these values
+        if (request.expected === undefined ? !editingThisDay : !sameEntryValues(atDay, request.expected)) {
+          return { ok: false, reason: 'exists', existing: atDay, updatedFromOtherTab };
+        }
+      }
+      const moving = request.previousDay !== undefined && request.previousDay !== checked.day && has(request.previousDay);
+      const count = Object.keys(entries).length + (atDay ? 0 : 1) - (moving ? 1 : 0);
+      if (count > MAX_BODY_ENTRIES) return { ok: false, reason: 'atCap', updatedFromOtherTab };
+      const next = reduce(state, { type: 'saveBodyEntry', day: checked.day, entry: checked.entry, previousDay: moving ? request.previousDay : undefined }, { now: now() });
+      if (!writeNow(next)) return { ok: false, reason: 'saveFailed', updatedFromOtherTab };
+      return { ok: true, updatedFromOtherTab };
+    },
+    deleteBodyEntry(day) {
+      if (!canSave || !storage) return { ok: false, reason: 'savingOff', updatedFromOtherTab: false };
+      const updatedFromOtherTab = catchUp();
+      const next = reduce(state, { type: 'deleteBodyEntry', day }, { now: now() });
+      if (next !== state && !writeNow(next)) return { ok: false, reason: 'saveFailed', updatedFromOtherTab };
+      return { ok: true, updatedFromOtherTab };
+    },
+    setHeight(text, unit) {
+      if (!canSave || !storage) return { ok: false, reason: 'savingOff', updatedFromOtherTab: false };
+      let height: { value: string; unit: 'cm' | 'in' } | null = null;
+      if (text.trim() !== '') {
+        const checked = checkBodyValue('height', text, lengthUnitFor(unit));
+        if (!checked.ok) return { ok: false, reason: checked.problem, updatedFromOtherTab: false };
+        height = { value: checked.value, unit: lengthUnitFor(unit) };
+      }
+      const updatedFromOtherTab = catchUp();
+      const next = reduce(state, { type: 'setHeight', height }, { now: now() });
+      if (next !== state && !writeNow(next)) return { ok: false, reason: 'saveFailed', updatedFromOtherTab };
+      return { ok: true, updatedFromOtherTab };
     },
     restore(data) {
       if (!storage) return { ok: false, error: 'noStorage' };

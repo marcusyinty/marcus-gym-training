@@ -27,8 +27,9 @@ export type BackupError = 'tooLarge' | 'notJson' | 'wrongApp' | 'wrongVersion' |
 
 export type ParsedBackup =
   // keepsCurrentRemarks: the file has no remarks field (made before remarks existed), so restoring it keeps
-  // the phone's remarks; otherwise its remarks (maybe none) replace them
-  | { ok: true; data: AppDataV3; exportedAt: string | null; droppedAny: boolean; summary: DataSummary; keepsCurrentRemarks: boolean }
+  // the phone's remarks; otherwise its remarks (maybe none) replace them. keepsCurrentBody: the same for body
+  // measurements (backups made before step 6 have no body field).
+  | { ok: true; data: AppDataV3; exportedAt: string | null; droppedAny: boolean; summary: DataSummary; keepsCurrentRemarks: boolean; keepsCurrentBody: boolean }
   | { ok: false; error: BackupError };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -40,10 +41,16 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export const backupFileName = (now: Date): string =>
   `aesthetic-recomp-backup-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json`;
 
-// A backup always has a remarks field (empty when there are none), so a restore can tell it apart from a
-// backup made before remarks existed
+// A backup always has a remarks field and a body field (empty when there is nothing), so a restore can tell it
+// apart from a backup made before they existed
 export const createBackupFile = (data: AppDataV3, now: Date): { fileName: string; text: string } => {
-  const file: BackupFile = { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: now.toISOString(), schemaVersion: 3, data: { ...data, remarks: data.remarks ?? {} } };
+  const file: BackupFile = {
+    app: BACKUP_APP,
+    version: BACKUP_VERSION,
+    exportedAt: now.toISOString(),
+    schemaVersion: 3,
+    data: { ...data, remarks: data.remarks ?? {}, body: data.body ?? { entries: {} } },
+  };
   return { fileName: backupFileName(now), text: JSON.stringify(file, null, 2) };
 };
 
@@ -69,7 +76,7 @@ export const parseBackupFile = (text: string): ParsedBackup => {
   const { data, droppedAny } = validateV3(raw.data);
   if (!data) return { ok: false, error: 'invalidData' };
   const exportedAt = typeof raw.exportedAt === 'string' && !Number.isNaN(Date.parse(raw.exportedAt)) ? raw.exportedAt : null;
-  return { ok: true, data, exportedAt, droppedAny, summary: summarizeData(data), keepsCurrentRemarks: data.remarks === undefined };
+  return { ok: true, data, exportedAt, droppedAny, summary: summarizeData(data), keepsCurrentRemarks: data.remarks === undefined, keepsCurrentBody: data.body === undefined };
 };
 
 // ---------- safety copies before a restore ----------
