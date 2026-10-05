@@ -156,6 +156,8 @@ export interface UiTranslations {
   remarkRowLabel: (exercise: string, remark: string) => string;
   restoreRemarksKept: string;
   restoreRemarksReplaced: string;
+  restoreBodyKept: string;
+  restoreBodyReplaced: string;
   tagNames: { easy: string; good: string; max: string };
   tagHelp: { easy: string; good: string; max: string };
   tagNone: string;
@@ -271,7 +273,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     storageErrorBanner:
       "We couldn't read your saved workouts, so nothing will be saved this session. Your data is not deleted. Please reload.",
     dataSectionTitle: 'Your data',
-    dataSectionText: 'Your workouts are saved only on this phone. Save a backup file now and then.',
+    dataSectionText: 'Your workouts and body measurements are saved only on this phone. Save a backup file now and then; it includes both.',
     backupButton: 'Back up my data',
     restoreButton: 'Restore from backup',
     backupUnavailable:
@@ -386,6 +388,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     remarkSave: 'Save',
     restoreRemarksKept: 'Your saved remarks will be kept.',
     restoreRemarksReplaced: 'Your saved remarks will be replaced.',
+    restoreBodyKept: 'Your body measurements will be kept.',
+    restoreBodyReplaced: 'Your body measurements will be replaced.',
     remarkRowLabel: (exercise, remark) => (remark ? `Note for ${exercise}: ${remark}` : `Add a note for ${exercise}`),
     tagNames: { easy: 'Easy', good: 'Good', max: 'Max' },
     tagHelp: {
@@ -503,7 +507,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     soundOff: '声音关',
     storageErrorBanner: '无法读取已保存的训练记录，本次使用期间不会保存任何内容。您的数据没有被删除，请刷新页面。',
     dataSectionTitle: '我的数据',
-    dataSectionText: '训练记录只保存在这台手机上。请不时保存一份备份文件。',
+    dataSectionText: '训练记录和身体数据只保存在这台手机上。请不时保存一份备份文件，两者都会包含在内。',
     backupButton: '备份我的数据',
     restoreButton: '从备份恢复',
     backupUnavailable: '暂时无法备份：已保存的训练记录无法读取，备份文件会是空的。您仍然可以从备份恢复。',
@@ -615,6 +619,8 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     remarkSave: '保存',
     restoreRemarksKept: '您保存的备注会保留。',
     restoreRemarksReplaced: '您保存的备注会被替换。',
+    restoreBodyKept: '您的身体数据会保留。',
+    restoreBodyReplaced: '您的身体数据会被替换。',
     remarkRowLabel: (exercise, remark) => (remark ? `${exercise} 的备注：${remark}` : `为 ${exercise} 添加备注`),
     tagNames: { easy: '轻松', good: '刚好', max: '极限' },
     tagHelp: {

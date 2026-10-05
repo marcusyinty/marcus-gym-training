@@ -153,6 +153,10 @@ export const DataBackupSection: React.FC<DataBackupSectionProps> = ({ lang, data
           <p data-restore-remarks className="text-xs text-zinc-300 leading-relaxed">
             {pending.keepsCurrentRemarks ? t.restoreRemarksKept : t.restoreRemarksReplaced}
           </p>
+          {/* Body measurements: the same rule (a backup made before they existed keeps this phone's) */}
+          <p data-restore-body className="text-xs text-zinc-300 leading-relaxed">
+            {pending.keepsCurrentBody ? t.restoreBodyKept : t.restoreBodyReplaced}
+          </p>
           <p className="flex items-start gap-2 text-xs text-amber-200 leading-relaxed">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-px text-amber-400" />
             <span>{t.restoreWarning}</span>
