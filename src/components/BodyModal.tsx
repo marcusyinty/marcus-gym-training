@@ -7,6 +7,7 @@ import { AppDataV3 } from '../lib/model';
 import type { BodyEntryRequest, BodyResult, HeightResult } from '../lib/store/appDataStore';
 import { WeightUnit } from '../lib/units';
 import { formatLocalDay } from '../lib/weeks';
+import { BodyChart } from './BodyChart';
 import { AlertTriangle, CheckCircle2, PencilLine, RefreshCw, Ruler, Trash2, X } from 'lucide-react';
 
 interface BodyModalProps {
@@ -323,6 +324,9 @@ export const BodyModal: React.FC<BodyModalProps> = ({ isOpen, lang, data, weight
               )}
             </div>
           </section>
+
+          {/* Weight trend: summary, chart (30 / 90 days / all) */}
+          <BodyChart lang={lang} body={data.body} weightUnit={weightUnit} />
 
           {/* Height */}
           <section aria-labelledby="body-height-title" data-body-height className="rounded-xl border border-[#27272a] bg-[#0d0d10] p-3">

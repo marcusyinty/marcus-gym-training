@@ -207,6 +207,21 @@ export interface UiTranslations {
     outOfRange: (field: 'weight' | 'waist' | 'hips' | 'height', low: string, high: string, unit: string) => string;
   };
   bodyAtCap: string;
+  bodyChartTitle: string;
+  bodyChartEmpty: string;
+  bodyChartOne: string;
+  bodyChartFew: string;
+  bodyRangeLabel: string;
+  bodyRanges: Record<'30' | '90' | 'all', string>;
+  bodyRangeAria: Record<'30' | '90' | 'all', string>;
+  bodyLegendEntries: string;
+  bodyLegendAverage: string;
+  bodyAverageLater: string;
+  bodyLatest: (value: string, day: string) => string;
+  bodySinceFirst: (day: string, change: string) => string;
+  bodyLast30: (change: string, from: string, to: string) => string;
+  bodyLast30NotEnough: string;
+  bodyChartAria: (range: string, n: number, from: string, to: string, low: string, high: string) => string;
 }
 
 export const uiTranslations: Record<Language, UiTranslations> = {
@@ -427,6 +442,22 @@ export const uiTranslations: Record<Language, UiTranslations> = {
       outOfRange: (field, low, high, unit) => `${{ weight: 'Weight', waist: 'Waist', hips: 'Hips', height: 'Height' }[field]} must be between ${low} and ${high} ${unit}.`,
     },
     bodyAtCap: 'You have 2,000 entries, the most this app keeps. Delete old entries to add new ones.',
+    bodyChartTitle: 'Weight trend',
+    bodyChartEmpty: 'Your weight chart appears here once you add entries.',
+    bodyChartOne: 'Add an entry for another day to see the chart.',
+    bodyChartFew: 'Fewer than 2 entries in this range. Pick a longer range.',
+    bodyRangeLabel: 'Chart range',
+    bodyRanges: { '30': '30 days', '90': '90 days', all: 'All' },
+    bodyRangeAria: { '30': 'last 30 days', '90': 'last 90 days', all: 'all entries' },
+    bodyLegendEntries: 'Entry',
+    bodyLegendAverage: '7-entry average',
+    bodyAverageLater: 'The 7-entry average line appears from your 7th entry.',
+    bodyLatest: (value, day) => `Latest: ${value} (${day})`,
+    bodySinceFirst: (day, change) => `Since first entry (${day}): ${change}`,
+    bodyLast30: (change, from, to) => `Last 30 days: ${change} (${from} → ${to})`,
+    bodyLast30NotEnough: 'Last 30 days: not enough entries',
+    bodyChartAria: (range, n, from, to, low, high) =>
+      `Weight chart, ${range}: ${n} entries from ${from} to ${to}, between ${low} and ${high}. Every entry is in the list below.`,
   },
   zh: {
     appTitle: '美学型体塑造',
@@ -640,6 +671,21 @@ export const uiTranslations: Record<Language, UiTranslations> = {
       outOfRange: (field, low, high, unit) => `${{ weight: '体重', waist: '腰围', hips: '臀围', height: '身高' }[field]}须在 ${low} 到 ${high} ${unit} 之间。`,
     },
     bodyAtCap: '已有 2,000 条记录，已达上限。请删除旧记录后再添加。',
+    bodyChartTitle: '体重趋势',
+    bodyChartEmpty: '添加记录后，这里会显示体重图表。',
+    bodyChartOne: '再添加另一天的记录即可看到图表。',
+    bodyChartFew: '此范围内的记录少于 2 条，请选择更长的范围。',
+    bodyRangeLabel: '图表范围',
+    bodyRanges: { '30': '30 天', '90': '90 天', all: '全部' },
+    bodyRangeAria: { '30': '最近 30 天', '90': '最近 90 天', all: '全部记录' },
+    bodyLegendEntries: '每次记录',
+    bodyLegendAverage: '7次记录平均',
+    bodyAverageLater: '从第 7 次记录起显示 7次记录平均线。',
+    bodyLatest: (value, day) => `最新：${value}（${day}）`,
+    bodySinceFirst: (day, change) => `自首次记录（${day}）以来：${change}`,
+    bodyLast30: (change, from, to) => `最近 30 天：${change}（${from} → ${to}）`,
+    bodyLast30NotEnough: '最近 30 天：记录不足',
+    bodyChartAria: (range, n, from, to, low, high) => `体重图表，${range}：${from} 至 ${to} 共 ${n} 条记录，介于 ${low} 与 ${high} 之间。每条记录都列在下方。`,
   },
 };
 
