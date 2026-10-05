@@ -369,7 +369,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     volumeLabel: '容量',
     sets: '组',
     reps: '次',
-    prevBest: (weight, unit, reps) => `上次: ${weight} ${unit} × ${reps}次`,
+    prevBest: (weight, unit, reps) => `最佳: ${weight} ${unit} × ${reps}次`,
     targetsLabel: '主/辅肌群:',
     coachingCueLabel: '动作要领',
     logSessionLabel: (completed, total) => `训练打卡 (${completed}/${total} 组)`,
