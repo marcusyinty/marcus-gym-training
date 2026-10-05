@@ -428,11 +428,11 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Description: 1 line, tap to show all. Padding + negative margin give a 40px tap area without a taller card */}
+            {/* Description: 1 line, tap to show all. Padding + negative margin give a 44px tap area without a taller card */}
             <button
               onClick={() => setIsDayDescExpanded((expanded) => !expanded)}
               aria-expanded={isDayDescExpanded}
-              className="relative w-full -mt-2.5 pt-3 -mb-3 pb-3 flex items-start gap-1.5 text-left cursor-pointer"
+              className="relative w-full -mt-3 pt-3.5 -mb-3.5 pb-3.5 flex items-start gap-1.5 text-left cursor-pointer"
             >
               <span className={`flex-1 min-w-0 text-xs leading-4 text-zinc-300 ${isDayDescExpanded ? 'block' : 'line-clamp-1'}`}>
                 {activeDayDesc}
@@ -505,17 +505,18 @@ export const App: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 flex flex-col items-center gap-1.5">
           <p className="font-medium text-zinc-400">{t.footerTitle}</p>
           <p className="text-zinc-600">{t.footerSub}</p>
+          {/* Text links: padding + negative margin give a 44px tap area without a taller footer */}
           <div className="flex items-center gap-4 mt-1">
             <button
               onClick={() => setIsAboutOpen(true)}
-              className="text-emerald-400 hover:underline font-semibold cursor-pointer"
+              className="py-3.5 -my-3.5 text-emerald-400 hover:underline font-semibold cursor-pointer"
             >
               {t.aboutTitle}
             </button>
             <span className="text-zinc-700">•</span>
             <button
               onClick={() => setIsWeeklyReportOpen(true)}
-              className="text-cyan-400 hover:underline font-semibold cursor-pointer"
+              className="py-3.5 -my-3.5 text-cyan-400 hover:underline font-semibold cursor-pointer"
             >
               {t.weeklyReportBtn}
             </button>

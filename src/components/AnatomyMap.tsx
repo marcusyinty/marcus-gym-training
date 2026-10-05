@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MuscleGroup } from '../types/workout';
 import { Language, uiTranslations } from '../data/translations';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { Activity } from 'lucide-react';
 
 interface AnatomyMapProps {
@@ -22,6 +23,8 @@ export const AnatomyMap: React.FC<AnatomyMapProps> = ({
   const [hoveredMuscle, setHoveredMuscle] = useState<string | null>(null);
 
   const t = uiTranslations[lang];
+  // Phones and tablets can't hover: a tap on a muscle shows its name there
+  const isTouch = useMediaQuery('(hover: none)');
 
   const getMuscleStatus = (group: MuscleGroup): 'primary' | 'secondary' | 'inactive' => {
     if (primaryMuscles.includes(group)) return 'primary';
@@ -66,27 +69,32 @@ export const AnatomyMap: React.FC<AnatomyMapProps> = ({
   return (
     <div className="flex flex-col items-center bg-[#0d0d10] border border-[#222227] rounded-xl p-3 shadow-inner">
       {/* Header & View Switcher */}
-      <div className="flex items-center justify-between w-full mb-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+      {/* The title never breaks; when it and the view buttons don't fit side by side, the buttons go to a row below */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 w-full mb-2">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
           <Activity className="w-3.5 h-3.5 text-emerald-400" />
           <span>{t.targetAnatomy}</span>
         </div>
-        <div className="flex bg-[#16161a] p-0.5 rounded-lg border border-zinc-800 text-[10px] font-semibold text-zinc-400">
+        {/* View switcher: 44px tall buttons, 12px text */}
+        <div className="ml-auto flex shrink-0 bg-[#16161a] p-0.5 rounded-lg border border-zinc-800 text-xs font-semibold text-zinc-400">
           <button
             onClick={() => setActiveTab('both')}
-            className={`px-1.5 py-0.5 rounded ${activeTab === 'both' ? 'bg-emerald-500 text-black font-extrabold' : 'hover:text-white'}`}
+            aria-pressed={activeTab === 'both'}
+            className={`min-h-11 min-w-11 px-2 rounded-md cursor-pointer ${activeTab === 'both' ? 'bg-emerald-500 text-black font-extrabold' : 'hover:text-white'}`}
           >
             {t.allView}
           </button>
           <button
             onClick={() => setActiveTab('front')}
-            className={`px-1.5 py-0.5 rounded ${activeTab === 'front' ? 'bg-emerald-500 text-black font-extrabold' : 'hover:text-white'}`}
+            aria-pressed={activeTab === 'front'}
+            className={`min-h-11 min-w-11 px-2 rounded-md cursor-pointer ${activeTab === 'front' ? 'bg-emerald-500 text-black font-extrabold' : 'hover:text-white'}`}
           >
             {t.frontView}
           </button>
           <button
             onClick={() => setActiveTab('back')}
-            className={`px-1.5 py-0.5 rounded ${activeTab === 'back' ? 'bg-emerald-500 text-black font-extrabold' : 'hover:text-white'}`}
+            aria-pressed={activeTab === 'back'}
+            className={`min-h-11 min-w-11 px-2 rounded-md cursor-pointer ${activeTab === 'back' ? 'bg-emerald-500 text-black font-extrabold' : 'hover:text-white'}`}
           >
             {t.backView}
           </button>
@@ -103,7 +111,7 @@ export const AnatomyMap: React.FC<AnatomyMapProps> = ({
           {/* ANTERIOR (FRONT) VIEW */}
           {(activeTab === 'both' || activeTab === 'front') && (
             <g transform={activeTab === 'front' ? 'translate(50, 0)' : 'translate(0, 0)'}>
-              <text x="47.5" y="10" textAnchor="middle" fill="#71717a" fontSize="8" fontWeight="bold">
+              <text x="47.5" y="10" textAnchor="middle" fill="#71717a" fontSize="12.5" fontWeight="bold">
                 {t.frontView.toUpperCase()}
               </text>
               <circle cx="47.5" cy="22" r="9" fill="#18181c" stroke="#27272a" strokeWidth="0.8" />
@@ -265,7 +273,7 @@ export const AnatomyMap: React.FC<AnatomyMapProps> = ({
           {/* POSTERIOR (BACK) VIEW */}
           {(activeTab === 'both' || activeTab === 'back') && (
             <g transform={activeTab === 'back' ? 'translate(50, 0)' : 'translate(105, 0)'}>
-              <text x="47.5" y="10" textAnchor="middle" fill="#71717a" fontSize="8" fontWeight="bold">
+              <text x="47.5" y="10" textAnchor="middle" fill="#71717a" fontSize="12.5" fontWeight="bold">
                 {t.backView.toUpperCase()}
               </text>
               <circle cx="47.5" cy="22" r="9" fill="#18181c" stroke="#27272a" strokeWidth="0.8" />
@@ -389,7 +397,7 @@ export const AnatomyMap: React.FC<AnatomyMapProps> = ({
 
       {/* Legend & Hover Info */}
       {showLabels && (
-        <div className="w-full mt-2 pt-2 border-t border-[#1a1a20] flex items-center justify-between text-[10px] text-zinc-400">
+        <div className="w-full mt-2 pt-2 border-t border-[#1a1a20] flex items-center justify-between gap-2 text-[11px] text-zinc-400">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 font-semibold text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50 inline-block" /> {t.primaryTarget}
@@ -400,7 +408,7 @@ export const AnatomyMap: React.FC<AnatomyMapProps> = ({
           </div>
 
           <div className="font-mono text-zinc-300 font-medium truncate max-w-[120px]">
-            {hoveredMuscle || t.hoverMuscleNotice}
+            {hoveredMuscle || (isTouch ? t.tapMuscleNotice : t.hoverMuscleNotice)}
           </div>
         </div>
       )}

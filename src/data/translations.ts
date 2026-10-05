@@ -88,6 +88,7 @@ export interface UiTranslations {
   primaryTarget: string;
   secondaryTarget: string;
   hoverMuscleNotice: string;
+  tapMuscleNotice: string;
 
   weeklyReportBtn: string;
   weeklyReportTitle: string;
@@ -264,6 +265,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     primaryTarget: 'Primary',
     secondaryTarget: 'Secondary',
     hoverMuscleNotice: 'Hover muscle',
+    tapMuscleNotice: 'Tap a muscle',
 
     weeklyReportBtn: 'Weekly Report',
     weeklyReportTitle: 'WEEKLY COMPLETION REPORT',
@@ -439,6 +441,7 @@ export const uiTranslations: Record<Language, UiTranslations> = {
     primaryTarget: '主目标',
     secondaryTarget: '辅目标',
     hoverMuscleNotice: '悬停查看肌群',
+    tapMuscleNotice: '点按肌肉查看',
 
     weeklyReportBtn: '本周战报',
     weeklyReportTitle: '本周训练完成战报',

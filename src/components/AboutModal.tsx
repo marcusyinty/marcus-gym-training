@@ -71,7 +71,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
                 <h4 className="text-xs font-extrabold uppercase tracking-wider text-white">{t.devLogTitle}</h4>
               </div>
               {/* The app's real version (from package.json) */}
-              <span data-app-version className="text-[10px] text-zinc-400 font-mono shrink-0">v{APP_VERSION}</span>
+              <span data-app-version className="text-[11px] text-zinc-400 font-mono shrink-0">v{APP_VERSION}</span>
             </div>
 
             {/* Updates Timeline */}
@@ -85,12 +85,12 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
                       title, no cut-off date). From sm up: tag, title and date in one row, as before. */}
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
                     {log.version && (
-                      <span data-log-version className="order-1 text-[10px] font-extrabold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <span data-log-version className="order-1 text-[11px] font-extrabold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         {log.version}
                       </span>
                     )}
                     {log.tag && (
-                      <span className="order-1 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <span className="order-1 text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         {log.tag}
                       </span>
                     )}
@@ -99,7 +99,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, lang, onClose, d
                         {log.title[lang]}
                       </h5>
                     )}
-                    <div className="order-2 sm:order-3 ml-auto flex items-center gap-1 text-[10px] text-zinc-400 font-mono shrink-0">
+                    <div className="order-2 sm:order-3 ml-auto flex items-center gap-1 text-[11px] text-zinc-400 font-mono shrink-0">
                       <Clock className="w-3 h-3 text-zinc-500" />
                       <span>{formatLogDate(log, lang)}</span>
                     </div>
